@@ -41,6 +41,8 @@ function loadSetting() {
 }
 
 function begin(startPage) {
+    fs.writeFile('result.json', '', function(){console.log('reset result.json done')})
+
     countloaded = 0;
     console.log('request Begin! now at page: ' + startPage);
 
@@ -129,11 +131,16 @@ function loadedFunction() {
             console.log(startPage, endPage);
         }
 
-        return;
-
         [].forEach.call(srcArray, function(item, index) {
-            type = src[0][src[0].length - 3] + src[0][src[0].length - 2] + src[0][src[0].length - 1];
-            download(src[0], save_directory, src[1] + '.' + type);
+            try {
+                var temp = item.src.split('.');
+                type = temp[temp.length - 1];
+            } catch(e) {
+            console.log(item.src)    
+            }
+            
+            return;
+            download(item.src, save_directory, item.name + '.' + type);
         });
     } else {
         console.log(countloaded * eachPersent + '%');
