@@ -98,6 +98,7 @@ function step2(input, number) {
             var imgList = $('#img');
 
             srcArray.push({
+                number: number,
                 src: imgList.attr('src'),
                 name: input.name
             });
