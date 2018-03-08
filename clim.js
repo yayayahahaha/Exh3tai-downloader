@@ -14,25 +14,37 @@ var result = [],
     total_photo_number = 0,
     srcArray = [],
 
+    countloaded = 0,
+
+    currentDirectory = '',
+
     startPage = 1,
     endPage = null,
     $ = null,
+    urlIndex = 0,
     pagerSelector = 'div.gtb>table.ptt>tbody>tr td',
 
     url = '{put your url value in key url of setting.json }',
     cookie = '{put your cookie value in key cookie of setting.json }';
 
-loadSetting();
+loadSetting(urlIndex);
 
 function loadSetting() {
     console.log('load setting info:');
     var content = fs.readFileSync("setting.json"),
         jsonContent = JSON.parse(content);
     if (jsonContent.cookie && jsonContent.url) {
+        if (urlIndex >= jsonContent.url.length) {
+            console.log('all url links downloaded!');
+            console.log('complete!');
+            return;
+        }
+
         // console.log('your cookie is: ' + jsonContent.cookie);
-        console.log('your url is: ' + JSON.stringify(jsonContent.url));
+        console.log('your url is: ' + JSON.stringify(jsonContent.url[urlIndex]));
         cookie = jsonContent.cookie;
-        url = jsonContent.url[0];
+        url = jsonContent.url[urlIndex];
+        startPage = 1;
 
         begin(startPage);
     } else {
@@ -41,27 +53,46 @@ function loadSetting() {
 }
 
 function begin(startPage) {
-    fs.writeFile('result.json', '', function(){console.log('reset result.json done')})
+    fs.writeFile('result.json', '', function() {
+        console.log('reset result.json done')
+    });
+    if (!fs.existsSync(save_directory)) {
+        fs.mkdirSync(save_directory);
+    }
 
     countloaded = 0;
     console.log('request Begin! now at page: ' + startPage);
 
     request({
-        url: url + '?p=' + toString(parseInt(startPage, 0) - 1),
+        url: url + '?p=' + (parseInt(startPage, 10) - 1).toString(),
         headers: {
             Cookie: cookie
         },
         jar: true
     }, function(error, response, body) {
+
+        console.log(url + '?p=' + (parseInt(startPage, 10) - 1).toString());
+
         if (!error) {
             $ = cheerio.load(body);
             eachImgPageArray = [];
             nameArray = [];
+            srcArray = [];
             var pager = $(pagerSelector);
             endPage = pager.length - 2;
-            console.log(endPage);
+            console.log('endPage: ' + endPage);
 
-            var list = $('.gdtm div a');
+            var title = $('h1#gj').text();
+            title = title.trim().replace(/ /g, '_');
+            console.log(title);
+            currentDirectory = save_directory + '/' + title;
+            console.log(currentDirectory);
+            if (!fs.existsSync(currentDirectory)) {
+                fs.mkdirSync(currentDirectory);
+            }
+
+            var list = $('.gdtm a');
+            console.log(list.length);
             for (var i = 0; i < list.length; i++) {
                 tmp = $(list[i]).attr('href');
                 eachImgPageArray.push({
@@ -77,7 +108,7 @@ function begin(startPage) {
             }
             eachPersent = 100 / inputLength;
 
-            for (var i = 0; i < eachImgPageArray.length; i++) {
+            for (i = 0; i < eachImgPageArray.length; i++) {
                 step2(eachImgPageArray[i], i);
             }
 
@@ -100,9 +131,10 @@ function step2(input, number) {
             var imgList = $('#img');
 
             srcArray.push({
-                number: number,
+                number: (parseInt(startPage) - 1) * 40 + parseInt(number),
                 src: imgList.attr('src'),
-                name: input.name
+                name: number + input.name,
+                type: imgList.attr('src').split('.')[imgList.attr('src').split('.').length - 1]
             });
             loadedFunction();
         } else {
@@ -112,36 +144,22 @@ function step2(input, number) {
     });
 }
 
-countloaded = 0;
-
 function loadedFunction() {
     countloaded++;
     if (countloaded == inputLength) {
         console.log(countloaded * eachPersent + '%');
-        console.log('=====================================');
-        console.log('Start download');
-        console.log('=====================================');
         countloaded = 0;
-        fs.writeFileSync('result.json', JSON.stringify(srcArray));
+        result = null;
+        result = srcArray.slice();
 
         startPage++;
         if (startPage <= endPage) {
             begin(startPage);
         } else {
             console.log(startPage, endPage);
+            console.log('Get all links done, now start download');
+            downloadTrigger();
         }
-
-        [].forEach.call(srcArray, function(item, index) {
-            try {
-                var temp = item.src.split('.');
-                type = temp[temp.length - 1];
-            } catch(e) {
-            console.log(item.src)    
-            }
-            
-            return;
-            download(item.src, save_directory, item.name + '.' + type);
-        });
     } else {
         console.log(countloaded * eachPersent + '%');
     }
@@ -151,26 +169,62 @@ function returnCookie() {
     return cookie;
 }
 
+function downloadTrigger() {
+    console.log('load result.json');
+    var jsonContent = result,
+        temp = {};
+
+    for (var i = 0; i < jsonContent.length; i++) {
+        var obj = jsonContent[i];
+        if (temp[obj.src]) {
+            continue;
+        } else {
+            temp[obj.src] = {
+                src: obj.src,
+                name: obj.name,
+                number: obj.number
+            };
+        }
+    }
+    inputLength = Object.keys(temp).length;
+    for (var key in temp) {
+        download(key, currentDirectory, temp[key].name + '.png');
+    }
+}
+
 function download(url, dir, filename) {
     filename = filename ? filename : dir + totalCount;
     request.head(url, function(err, res, body) {
         if (!err) {
             request(url, function(er, res, body) {
-                countloaded++;
-                if (countloaded == inputLength) {
-                    console.log('done!');
-                    startPage++;
-                    if (startPage <= endPage) {
-                        begin(startPage);
+                if (!er) {
+                    countloaded++;
+                    if (countloaded == inputLength) {
+                        console.log('done!');
+                        urlIndex++;
+                        loadSetting(urlIndex);
                     } else {
-                        console.log(startPage, endPage);
+                        console.log(inputLength, countloaded);
+                        // console.log(countloaded * eachPersent + '%');
                     }
                 } else {
-                    console.log(countloaded * eachPersent + '%');
+                    console.log('download failed inside! retry.');
+                    download(url, dir, filename);
                 }
+
             }).pipe(fs.createWriteStream(dir + '/' + filename));
         } else {
-            countloaded++;
+            console.log('download failed! retry.');
+            console.log(url);
+            download(url, dir, filename);
         }
     });
 }
+
+/*
+temp = [];
+[].forEach.call(document.querySelectorAll('.id3 a'), function(item){
+    temp.push(item.href)
+})
+console.log(JSON.stringify(temp))
+*/
