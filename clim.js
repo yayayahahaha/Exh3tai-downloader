@@ -14,8 +14,6 @@ var result = [],
     total_photo_number = 0,
     srcArray = [],
 
-    countloaded = 0,
-
     startPage = 1,
     endPage = null,
     $ = null,
@@ -43,35 +41,27 @@ function loadSetting() {
 }
 
 function begin(startPage) {
-    fs.writeFile('result.json', '', function() {
-        console.log('reset result.json done')
-    });
-    if (!fs.existsSync(save_directory)) {
-        fs.mkdirSync(save_directory);
-    }
+    fs.writeFile('result.json', '', function(){console.log('reset result.json done')})
 
     countloaded = 0;
     console.log('request Begin! now at page: ' + startPage);
 
     request({
-        url: url + '?p=' + (parseInt(startPage, 10) - 1).toString(),
+        url: url + '?p=' + toString(parseInt(startPage, 0) - 1),
         headers: {
             Cookie: cookie
         },
         jar: true
     }, function(error, response, body) {
-
-        console.log(url + '?p=' + (parseInt(startPage, 10) - 1).toString());
-
         if (!error) {
             $ = cheerio.load(body);
             eachImgPageArray = [];
             nameArray = [];
             var pager = $(pagerSelector);
             endPage = pager.length - 2;
+            console.log(endPage);
 
-            var list = $('.gdtm a');
-            console.log(list.length);
+            var list = $('.gdtm div a');
             for (var i = 0; i < list.length; i++) {
                 tmp = $(list[i]).attr('href');
                 eachImgPageArray.push({
@@ -87,7 +77,7 @@ function begin(startPage) {
             }
             eachPersent = 100 / inputLength;
 
-            for (i = 0; i < eachImgPageArray.length; i++) {
+            for (var i = 0; i < eachImgPageArray.length; i++) {
                 step2(eachImgPageArray[i], i);
             }
 
@@ -110,10 +100,9 @@ function step2(input, number) {
             var imgList = $('#img');
 
             srcArray.push({
-                number: (parseInt(startPage) - 1) * 40 + parseInt(number),
+                number: number,
                 src: imgList.attr('src'),
-                name: number + input.name,
-                type: imgList.attr('src').split('.')[imgList.attr('src').split('.').length - 1]
+                name: input.name
             });
             loadedFunction();
         } else {
@@ -122,6 +111,8 @@ function step2(input, number) {
         }
     });
 }
+
+countloaded = 0;
 
 function loadedFunction() {
     countloaded++;
@@ -138,15 +129,17 @@ function loadedFunction() {
             begin(startPage);
         } else {
             console.log(startPage, endPage);
-            console.log('Get all links done, now start download');
-            downloadTrigger();
         }
-        return;
 
         [].forEach.call(srcArray, function(item, index) {
-            var temp = item.src.split('.');
-            type = temp[temp.length - 1];
-
+            try {
+                var temp = item.src.split('.');
+                type = temp[temp.length - 1];
+            } catch(e) {
+            console.log(item.src)    
+            }
+            
+            return;
             download(item.src, save_directory, item.name + '.' + type);
         });
     } else {
@@ -158,30 +151,6 @@ function returnCookie() {
     return cookie;
 }
 
-function downloadTrigger() {
-    console.log('load result.json');
-    var content = fs.readFileSync("result.json"),
-        jsonContent = JSON.parse(content),
-        temp = {};
-
-    for (var i = 0; i < jsonContent.length; i++) {
-        var obj = jsonContent[i];
-        if (temp[obj.src]) {
-            continue;
-        } else {
-            temp[obj.src] = {
-                src: obj.src,
-                name: obj.name,
-                number: obj.number
-            };
-        }
-    }
-    inputLength = Object.keys(temp).length;
-    for (var key in temp) {
-        download(key, save_directory, temp[key].name + '.png');
-    }
-}
-
 function download(url, dir, filename) {
     filename = filename ? filename : dir + totalCount;
     request.head(url, function(err, res, body) {
@@ -190,16 +159,18 @@ function download(url, dir, filename) {
                 countloaded++;
                 if (countloaded == inputLength) {
                     console.log('done!');
-                    console.log('complete!');
+                    startPage++;
+                    if (startPage <= endPage) {
+                        begin(startPage);
+                    } else {
+                        console.log(startPage, endPage);
+                    }
                 } else {
-                    console.log(inputLength, countloaded);
-                    // console.log(countloaded * eachPersent + '%');
+                    console.log(countloaded * eachPersent + '%');
                 }
             }).pipe(fs.createWriteStream(dir + '/' + filename));
         } else {
-            console.log('download failed! retry.');
-            console.log(err);
-            // download(url, dir, filename);
+            countloaded++;
         }
     });
 }
