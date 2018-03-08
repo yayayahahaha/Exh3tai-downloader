@@ -1,3 +1,4 @@
 {
-    "cookie":"{put your cookie here, example: yay=xxxxxxxxxxxx; ipb_member_id=xxxxxxxxxxxx; ipb_pass_hash=xxxxxxxxxxxx; ipb_session_id=xxxxxxxxxxxx; igneous=xxxxxxxxxxxx; s=xxxxxxxxxxxx; uconfig=xxxxxxxxxxxx; sl=xxxxxxxxxxxx; sk=xxxxxxxxxxxx; lv=xxxxxxxxxxxx;}"
+    "cookie":"{put your cookie here, example: yay=xxxxxxxxxxxx; ipb_member_id=xxxxxxxxxxxx; ipb_pass_hash=xxxxxxxxxxxx; ipb_session_id=xxxxxxxxxxxx; igneous=xxxxxxxxxxxx; s=xxxxxxxxxxxx; uconfig=xxxxxxxxxxxx; sl=xxxxxxxxxxxx; sk=xxxxxxxxxxxx; lv=xxxxxxxxxxxx;}",
+    "url":["{gallery-url-1}","{gallery-url-2}","{gallery-url-3...}"]
 }
