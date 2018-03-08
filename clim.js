@@ -23,6 +23,11 @@ var result = [],
 begin(startPage);
 
 function begin(startPage) {
+
+    console.log('load setting info:');
+    var content = fs.readFileSync("setting.json");
+    return;
+
     countloaded = 0;
     console.log('request Begin! now at page: ' + startPage);
 
