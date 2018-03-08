@@ -15,35 +15,37 @@ var result = [],
     srcArray = [],
 
     startPage = 1,
-    endPage = 7,
+    endPage = null,
     $ = null,
+    pagerSelector = 'div.gtb>table.ptt>tbody>tr td',
+
     url = '{put your url value in key url of setting.json }',
     cookie = '{put your cookie value in key cookie of setting.json }';
 
-begin(startPage);
+loadSetting();
 
-function begin(startPage) {
-
+function loadSetting() {
     console.log('load setting info:');
     var content = fs.readFileSync("setting.json"),
         jsonContent = JSON.parse(content);
     if (jsonContent.cookie && jsonContent.url) {
-        console.log('your cookie is: ' + jsonContent.cookie);
-        console.log('your cookie is: ' + JSON.stringify(jsonContent.url));
+        // console.log('your cookie is: ' + jsonContent.cookie);
+        console.log('your url is: ' + JSON.stringify(jsonContent.url));
         cookie = jsonContent.cookie;
         url = jsonContent.url[0];
-        console.log(cookie, url);
+
+        begin(startPage);
     } else {
         return;
     }
+}
 
-    return;
-
+function begin(startPage) {
     countloaded = 0;
     console.log('request Begin! now at page: ' + startPage);
 
     request({
-        url: url + '?p=' + startPage,
+        url: url + '?p=' + toString(parseInt(startPage, 0) - 1),
         headers: {
             Cookie: cookie
         },
@@ -53,6 +55,10 @@ function begin(startPage) {
             $ = cheerio.load(body);
             eachImgPageArray = [];
             nameArray = [];
+            var pager = $(pagerSelector);
+            endPage = pager.length - 2;
+            console.log(endPage);
+
             var list = $('.gdtm div a');
             for (var i = 0; i < list.length; i++) {
                 tmp = $(list[i]).attr('href');
@@ -74,7 +80,7 @@ function begin(startPage) {
             }
 
         } else {
-            console.log('error occur!');
+            console.log(error);
         }
     });
 }
@@ -91,7 +97,10 @@ function step2(input, number) {
             $ = cheerio.load(body2);
             var imgList = $('#img');
 
-            srcArray.push([imgList.attr('src'), input.name]);
+            srcArray.push({
+                src: imgList.attr('src'),
+                name: input.name
+            });
             loadedFunction();
         } else {
             console.log('error! retry~!');
@@ -111,7 +120,16 @@ function loadedFunction() {
         console.log('=====================================');
         countloaded = 0;
         fs.writeFileSync('result.json', JSON.stringify(srcArray));
+
+        startPage++;
+        if (startPage <= endPage) {
+            begin(startPage);
+        } else {
+            console.log(startPage, endPage);
+        }
+
         return;
+
         [].forEach.call(srcArray, function(item, index) {
             type = src[0][src[0].length - 3] + src[0][src[0].length - 2] + src[0][src[0].length - 1];
             download(src[0], save_directory, src[1] + '.' + type);
