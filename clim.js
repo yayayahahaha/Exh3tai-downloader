@@ -17,15 +17,26 @@ var result = [],
     startPage = 1,
     endPage = 7,
     $ = null,
-    url = '{put your lovely gallery url here}',
-    cookie = '{put your cookie here}';
+    url = '{put your url value in key url of setting.json }',
+    cookie = '{put your cookie value in key cookie of setting.json }';
 
 begin(startPage);
 
 function begin(startPage) {
 
     console.log('load setting info:');
-    var content = fs.readFileSync("setting.json");
+    var content = fs.readFileSync("setting.json"),
+        jsonContent = JSON.parse(content);
+    if (jsonContent.cookie && jsonContent.url) {
+        console.log('your cookie is: ' + jsonContent.cookie);
+        console.log('your cookie is: ' + JSON.stringify(jsonContent.url));
+        cookie = jsonContent.cookie;
+        url = jsonContent.url[0];
+        console.log(cookie, url);
+    } else {
+        return;
+    }
+
     return;
 
     countloaded = 0;
