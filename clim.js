@@ -182,13 +182,14 @@ function downloadTrigger() {
             temp[obj.src] = {
                 src: obj.src,
                 name: obj.name,
-                number: obj.number
+                number: obj.number,
+                type: obj.type
             };
         }
     }
     inputLength = Object.keys(temp).length;
     for (var key in temp) {
-        download(key, currentDirectory, temp[key].name + '.png');
+        download(key, currentDirectory, temp[key].name + '.' + temp[key].type);
     }
 }
 
