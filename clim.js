@@ -19,6 +19,8 @@ var result = [],
     $ = null,
     urlIndex = 0,
 
+    taskIndex = 9,
+
     pagerSelector = 'table.ptt td',
 
     linkChunkArray = [],
@@ -106,7 +108,7 @@ function getPageImagesLink(startPage) {
         jar: true
     }, function(error, response, body) {
 
-        console.log('current url: ' + url + '?p=' + startPage);
+        // console.log('current url: ' + url + '?p=' + startPage);
 
         if (!error) {
             $ = cheerio.load(body);
@@ -152,19 +154,12 @@ function singlePageLoaded(totalNumber) {
             return a.number - b.number;
         });
 
-        linkChunkArray = _.chunk(linkArray, chunkNumber);
-        chunkPieceRequest(linkChunkArray[chunkIndex], chunkNumber);
-
+        for (var i = 0; i <= taskIndex; i++) {
+            getImgSrcByLink(linkArray[i]);
+        }
     } else {
         console.reset();
         console.log((countloaded * 100 / totalNumber).toFixed(2) + '%');
-    }
-}
-
-function chunkPieceRequest(linkArray, totalNumber) {
-    for (var i = 0; i < linkArray.length; i++) {
-        var singlePageObj = linkArray[i];
-        getImgSrcByLink(singlePageObj, linkArray.length);
     }
 }
 
@@ -178,7 +173,6 @@ function getImgSrcByLink(linkObj, totalNumber) {
     }, function(error, response, body2) {
 
         console.log('current url: ' + linkObj.url);
-
         if (!error) {
             $ = cheerio.load(body2);
             var imgList = $('#img');
@@ -187,38 +181,25 @@ function getImgSrcByLink(linkObj, totalNumber) {
             linkObj.type = imgList.attr('src').split('.')[imgList.attr('src').split('.').length - 1];
             srcArray.push(linkObj);
 
-            loadedFunction(totalNumber);
+            taskIndex++;
+            if (taskIndex >= linkArray.length && srcArray.length === linkArray.length) {
+                console.log(srcArray.length);
+                for (var i = 0; i < srcArray.length; i++) {
+                    console.reset();
+                    console.log(srcArray[i].src);
+                }
+                console.log('complete!');
+                return;
+            } else {
+                console.reset();
+                console.log(taskIndex, linkArray.length, srcArray.length);
+                getImgSrcByLink(linkArray[taskIndex]);
+            }
         } else {
             console.log('getImgSrcByLink error! retry.' + error);
-            loadedFunction(totalNumber);
-            // getImgSrcByLink(linkObj, totalNumber);
+            getImgSrcByLink(linkObj, totalNumber);
         }
     });
-}
-
-function loadedFunction(totalNumber) {
-    console.log(totalNumber);
-    countloaded++;
-    if (countloaded == totalNumber) {
-        countloaded = 0;
-        // result = srcArray.slice();
-
-        console.log(srcArray);
-        console.log(srcArray.length);
-
-        return;
-
-        startPage++;
-        if (startPage <= endPage) {
-            begin(startPage);
-        } else {
-            console.log(startPage, endPage);
-            console.log('Get all links done, now start download');
-            downloadTrigger();
-        }
-    } else {
-        console.log((countloaded * 100 / totalNumber).toFixed(2) + '%');
-    }
 }
 
 function returnCookie() {
