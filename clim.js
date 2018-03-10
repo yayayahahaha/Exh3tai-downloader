@@ -54,7 +54,7 @@ function loadSetting() {
 
 function begin(startPage) {
     fs.writeFile('result.json', '', function() {
-        console.log('reset result.json done')
+        console.log('reset result.json done');
     });
     if (!fs.existsSync(save_directory)) {
         fs.mkdirSync(save_directory);
