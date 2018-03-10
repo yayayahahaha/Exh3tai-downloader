@@ -1,7 +1,6 @@
 var request = require('request');
 var fs = require('fs');
 var cheerio = require('cheerio');
-var _ = require('lodash');
 
 var result = [],
     save_directory = './saveImg',
@@ -19,7 +18,7 @@ var result = [],
     $ = null,
     urlIndex = 0,
 
-    taskIndex = 9,
+    taskIndex = 30,
 
     pagerSelector = 'table.ptt td',
 
@@ -154,6 +153,7 @@ function singlePageLoaded(totalNumber) {
             return a.number - b.number;
         });
 
+        taskIndex = taskIndex <= linkArray.length ? taskIndex : linkArray.length;
         for (var i = 0; i <= taskIndex; i++) {
             getImgSrcByLink(linkArray[i]);
         }
