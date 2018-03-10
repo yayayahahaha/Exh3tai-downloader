@@ -77,7 +77,6 @@ function begin(startPage) {
             $ = cheerio.load(body);
             eachImgPageArray = [];
             nameArray = [];
-            srcArray = [];
             var pager = $(pagerSelector);
             endPage = pager.length - 2;
             console.log('endPage: ' + endPage);
@@ -203,6 +202,7 @@ function download(url, dir, filename) {
                     if (countloaded == inputLength) {
                         console.log('done!');
                         urlIndex++;
+                        srcArray = []; //hope this time is correct!
                         loadSetting(urlIndex);
                     } else {
                         console.log(inputLength, countloaded);
