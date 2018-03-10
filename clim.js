@@ -206,30 +206,6 @@ function returnCookie() {
     return cookie;
 }
 
-function downloadTrigger() {
-    console.log('load result.json');
-    var jsonContent = result,
-        temp = {};
-
-    for (var i = 0; i < jsonContent.length; i++) {
-        var obj = jsonContent[i];
-        if (temp[obj.src]) {
-            continue;
-        } else {
-            temp[obj.src] = {
-                src: obj.src,
-                name: obj.name,
-                number: obj.number,
-                type: obj.type
-            };
-        }
-    }
-    inputLength = Object.keys(temp).length;
-    for (var key in temp) {
-        download(key, currentDirectory, temp[key].name + '.' + temp[key].type);
-    }
-}
-
 function download(url, dir, filename) {
     if (!url || !dir || !filename) {
         console.log('download parameter lost!');
