@@ -1,5 +1,6 @@
 setting.json
 /node_modules
+result.json
 *.jpg
 *.png
 *.gif
