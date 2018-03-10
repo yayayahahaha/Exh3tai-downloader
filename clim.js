@@ -5,6 +5,7 @@ var cheerio = require('cheerio');
 var result = [],
     save_directory = './saveImg',
 
+    linkArray = [],
     srcArray = [],
 
     countloaded = 0,
@@ -25,6 +26,9 @@ var result = [],
 console.log('***************');
 console.log('Download Start!');
 console.log('***************');
+if (!fs.existsSync(save_directory)) {
+    fs.mkdirSync(save_directory);
+}
 loadSetting(urlIndex);
 
 function loadSetting() {
@@ -39,82 +43,112 @@ function loadSetting() {
         }
 
         // console.log('your cookie is: ' + jsonContent.cookie);
-        console.log('your url is: ' + JSON.stringify(jsonContent.url[urlIndex]));
+        console.log('Your url is: ' + JSON.stringify(jsonContent.url[urlIndex]));
 
         cookie = jsonContent.cookie;
         url = jsonContent.url[urlIndex];
         startPage = 1;
 
-        begin(startPage);
+        request({
+            url: url,
+            headers: {
+                Cookie: cookie
+            },
+            jar: true
+        }, function(error, response, body) {
+            if (!error) {
+                $ = cheerio.load(body);
+
+                var pager = $(pagerSelector);
+                endPage = $(pager[pager.length - 2]).text();
+                endPage = parseInt(endPage, 10);
+
+                var title = $('title').text();
+                title = title.trim().replace(/ /g, '_');
+                console.log('gallery\'s title: ' + title);
+
+                currentDirectory = save_directory + '/' + title;
+                console.log('save in directory: ' + currentDirectory);
+                if (!fs.existsSync(currentDirectory)) {
+                    fs.mkdirSync(currentDirectory);
+                }
+
+                for (var i = 0; i < endPage; i++) {
+                    getPageImagesLink(i);
+                }
+
+            } else {
+                console.log(error);
+            }
+        });
+
     } else {
         console.log('setting.json parse error!');
         return;
     }
 }
 
-function begin(startPage) {
+function getPageImagesLink(startPage) {
     fs.writeFile('result.json', '', function() {
-        console.log('reset result.json done');
+        // console.log('reset result.json done');
     });
-    if (!fs.existsSync(save_directory)) {
-        fs.mkdirSync(save_directory);
-    }
 
     countloaded = 0;
-    console.log('request Begin! now at page: ' + startPage);
+    console.log('Now at page ' + (startPage + 1));
+
+    // return;
 
     request({
-        url: url + '?p=' + (parseInt(startPage, 10) - 1).toString(),
+        url: url + '?p=' + startPage,
         headers: {
             Cookie: cookie
         },
         jar: true
     }, function(error, response, body) {
 
-        console.log(url + '?p=' + (parseInt(startPage, 10) - 1).toString());
+        console.log('current url: ' + url + '?p=' + (parseInt(startPage, 10) - 1).toString());
 
         if (!error) {
             $ = cheerio.load(body);
-            eachImgPageArray = [];
 
             var pager = $(pagerSelector);
             endPage = $(pager[pager.length - 2]).text();
+            endPage = parseInt(endPage, 10);
 
             var title = $('title').text();
             title = title.trim().replace(/ /g, '_');
-            console.log(title);
+            console.log('gallery\'s title: ' + title);
 
             currentDirectory = save_directory + '/' + title;
-            console.log(currentDirectory);
+            console.log('save in directory: ' + currentDirectory);
             if (!fs.existsSync(currentDirectory)) {
                 fs.mkdirSync(currentDirectory);
             }
 
             var list = $('.gdtm a');
-            console.log(list.length);
+            console.log('current page\'s images number: ' + list.length);
             for (var i = 0; i < list.length; i++) {
                 tmp = $(list[i]).attr('href');
-                eachImgPageArray.push({
+                linkArray.push({
                     url: tmp,
                     name: tmp.split('/')[5]
                 });
-                console.log(eachImgPageArray[i].name);
+                // console.log(linkArray[i].name);
             }
-
-            inputLength = eachImgPageArray.length;
-            if (inputLength < 40) {
-                endPage = -1;
-            }
-            eachPersent = 100 / inputLength;
-
-            for (i = 0; i < eachImgPageArray.length; i++) {
-                step2(eachImgPageArray[i], i);
-            }
-
         } else {
-            console.log(error);
+            console.log('getPageImagesLink error! retry.' + error);
+            getPageImagesLink(startPage);
         }
     });
+}
+
+ccc = 0;
+function counter(number) {
+    console.log(number);
+    ccc++;
+    if (ccc == endPage) {
+        console.log(linkArray);
+    }
 }
 
 function step2(input, number) {
