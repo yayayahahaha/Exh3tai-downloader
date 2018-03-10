@@ -194,32 +194,25 @@ function downloadTrigger() {
 
 function download(url, dir, filename) {
     filename = filename ? filename : dir + totalCount;
-    request.head(url, function(err, res, body) {
-        if (!err) {
-            request(url, function(er, res, body) {
-                if (!er) {
-                    countloaded++;
-                    if (countloaded == inputLength) {
-                        console.log('done!');
-                        urlIndex++;
-                        srcArray = []; //hope this time is correct!
-                        loadSetting(urlIndex);
-                    } else {
-                        console.log(inputLength, countloaded);
-                        // console.log(countloaded * eachPersent + '%');
-                    }
-                } else {
-                    console.log('download failed inside! retry.');
-                    download(url, dir, filename);
-                }
-
-            }).pipe(fs.createWriteStream(dir + '/' + filename));
+    request(url, function(er, res, body) {
+        if (!er) {
+            countloaded++;
+            if (countloaded == inputLength) {
+                console.log('done!');
+                urlIndex++;
+                srcArray = []; //hope this time is correct!
+                loadSetting(urlIndex);
+            } else {
+                console.log(inputLength, countloaded);
+                // console.log(countloaded * eachPersent + '%');
+            }
         } else {
             console.log('download failed! retry.');
-            console.log(url);
+            console.log(er);
             download(url, dir, filename);
         }
-    });
+
+    }).pipe(fs.createWriteStream(dir + '/' + filename));
 }
 
 /*
