@@ -182,14 +182,16 @@ function getImgSrcByLink(linkObj, totalNumber) {
             srcArray.push(linkObj);
 
             taskIndex++;
-            if (taskIndex >= linkArray.length && srcArray.length === linkArray.length) {
-                console.log(srcArray.length);
-                for (var i = 0; i < srcArray.length; i++) {
-                    console.reset();
-                    console.log(srcArray[i].src);
+            if (taskIndex >= linkArray.length) {
+                if (srcArray.length === linkArray.length) {
+                    console.log(srcArray.length);
+                    for (var i = 0; i < srcArray.length; i++) {
+                        console.reset();
+                        console.log(srcArray[i].src);
+                    }
+                    console.log('complete!');
+                    return;
                 }
-                console.log('complete!');
-                return;
             } else {
                 console.reset();
                 console.log(taskIndex, linkArray.length, srcArray.length);
@@ -234,7 +236,7 @@ function download(url, dir, filename) {
 
 console.reset = function() {
     return process.stdout.write('\033c');
-}
+};
 
 /*
 temp = [];
