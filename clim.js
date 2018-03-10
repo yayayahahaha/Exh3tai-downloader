@@ -18,6 +18,7 @@ var result = [],
     $ = null,
     urlIndex = 0,
 
+    originTaskIndex = 30,
     taskIndex = 30,
 
     pagerSelector = 'table.ptt td',
@@ -184,12 +185,8 @@ function getImgSrcByLink(linkObj, totalNumber) {
             taskIndex++;
             if (taskIndex >= linkArray.length) {
                 if (srcArray.length === linkArray.length) {
-                    console.log(srcArray.length);
-                    for (var i = 0; i < srcArray.length; i++) {
-                        console.reset();
-                        console.log(srcArray[i].src);
-                    }
-                    console.log('complete!');
+                    console.log('get src complete! start download');
+                    downloadTrigger();
                     return;
                 }
             } else {
@@ -208,6 +205,14 @@ function returnCookie() {
     return cookie;
 }
 
+function downloadTrigger() {
+    countloaded = 0;
+    taskIndex = originTaskIndex <= srcArray.length ? originTaskIndex : srcArray.length;
+    for (var i = 0; i < srcArray.length; i++) {
+        download(srcArray[i].src, currentDirectory, srcArray[i].name + '.' + srcArray[i].type);
+    }
+}
+
 function download(url, dir, filename) {
     if (!url || !dir || !filename) {
         console.log('download parameter lost!');
@@ -216,11 +221,11 @@ function download(url, dir, filename) {
     request(url, function(er, res, body) {
         if (!er) {
             countloaded++;
-            if (countloaded == inputLength) {
+            if (countloaded == srcArray) {
                 console.log('done!');
                 urlIndex++;
                 srcArray = []; //hope this time is correct!
-                loadSetting(urlIndex);
+                // loadSetting(urlIndex);
             } else {
                 console.log(inputLength, countloaded);
                 // console.log(countloaded * eachPersent + '%');
