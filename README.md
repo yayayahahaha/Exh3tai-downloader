@@ -1,5 +1,5 @@
 # Exh3tai-downloader
-you know, me know, we al know
+you know, me know, we a11 know
 
 here is the step:
 
@@ -35,7 +35,7 @@ remember the ```"``` before and after url, and don't forget ```,``` between each
 10. in your terminal, run ```node clim.js```
 11. enjoy
 
-Otherwise, if you want to get all galleries' url once in some search page: 
+#Otherwise, if you want to get all galleries' url once in some search page: 
 1. press F12, click console panel
 2. type this:
 ```
