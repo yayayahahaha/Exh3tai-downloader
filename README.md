@@ -33,6 +33,7 @@ here is the step:
 ```
 remember the ```"``` before and after url, and don't forget ```,``` between each url, and also don't forget```[]``` before and after them
 10. in your terminal, run ```node clim.js```
+
 11. enjoy
 
 #Otherwise, if you want to get all galleries' url once in some search page: 
