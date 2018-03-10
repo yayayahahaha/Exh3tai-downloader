@@ -3,15 +3,8 @@ var fs = require('fs');
 var cheerio = require('cheerio');
 
 var result = [],
-    photo_id = [],
-    single_id = [],
-    multi_id = [],
-    single_src = [],
-    final_src = [],
     save_directory = './saveImg',
-    totalCount = 0,
 
-    total_photo_number = 0,
     srcArray = [],
 
     countloaded = 0,
@@ -20,17 +13,22 @@ var result = [],
 
     startPage = 1,
     endPage = null,
+
     $ = null,
     urlIndex = 0,
-    pagerSelector = 'div.gtb>table.ptt>tbody>tr td',
+
+    pagerSelector = 'table.ptt td',
 
     url = '{put your url value in key url of setting.json }',
     cookie = '{put your cookie value in key cookie of setting.json }';
 
+console.log('***************');
+console.log('Download Start!');
+console.log('***************');
 loadSetting(urlIndex);
 
 function loadSetting() {
-    console.log('load setting info:');
+    console.log('Load setting info:');
     var content = fs.readFileSync("setting.json"),
         jsonContent = JSON.parse(content);
     if (jsonContent.cookie && jsonContent.url) {
@@ -42,12 +40,14 @@ function loadSetting() {
 
         // console.log('your cookie is: ' + jsonContent.cookie);
         console.log('your url is: ' + JSON.stringify(jsonContent.url[urlIndex]));
+
         cookie = jsonContent.cookie;
         url = jsonContent.url[urlIndex];
         startPage = 1;
 
         begin(startPage);
     } else {
+        console.log('setting.json parse error!');
         return;
     }
 }
@@ -76,14 +76,14 @@ function begin(startPage) {
         if (!error) {
             $ = cheerio.load(body);
             eachImgPageArray = [];
-            nameArray = [];
-            var pager = $(pagerSelector);
-            endPage = pager.length - 2;
-            console.log('endPage: ' + endPage);
 
-            var title = $('h1#gj').text();
+            var pager = $(pagerSelector);
+            endPage = $(pager[pager.length - 2]).text();
+
+            var title = $('title').text();
             title = title.trim().replace(/ /g, '_');
             console.log(title);
+
             currentDirectory = save_directory + '/' + title;
             console.log(currentDirectory);
             if (!fs.existsSync(currentDirectory)) {
@@ -193,7 +193,10 @@ function downloadTrigger() {
 }
 
 function download(url, dir, filename) {
-    filename = filename ? filename : dir + totalCount;
+    if (!url || !dir || !filename) {
+        console.log('download parameter lost!');
+        return;
+    }
     request(url, function(er, res, body) {
         if (!er) {
             countloaded++;
