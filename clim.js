@@ -5,6 +5,7 @@ var cheerio = require('cheerio');
 var result = [],
     save_directory = './saveImg',
 
+    linkArray = [],
     srcArray = [],
 
     countloaded = 0,
@@ -25,6 +26,9 @@ var result = [],
 console.log('***************');
 console.log('Download Start!');
 console.log('***************');
+if (!fs.existsSync(save_directory)) {
+    fs.mkdirSync(save_directory);
+}
 loadSetting(urlIndex);
 
 function loadSetting() {
@@ -39,117 +43,162 @@ function loadSetting() {
         }
 
         // console.log('your cookie is: ' + jsonContent.cookie);
-        console.log('your url is: ' + JSON.stringify(jsonContent.url[urlIndex]));
+        console.log('Your url is: ' + JSON.stringify(jsonContent.url[urlIndex]));
 
         cookie = jsonContent.cookie;
         url = jsonContent.url[urlIndex];
         startPage = 1;
 
-        begin(startPage);
+        request({
+            url: url,
+            headers: {
+                Cookie: cookie
+            },
+            jar: true
+        }, function(error, response, body) {
+            if (!error) {
+                $ = cheerio.load(body);
+
+                var pager = $(pagerSelector);
+                endPage = $(pager[pager.length - 2]).text();
+                endPage = parseInt(endPage, 10);
+
+                var title = $('title').text();
+                title = title.trim().replace(/ /g, '_');
+                console.log('gallery\'s title: ' + title);
+
+                currentDirectory = save_directory + '/' + title;
+                console.log('save in directory: ' + currentDirectory);
+                if (!fs.existsSync(currentDirectory)) {
+                    fs.mkdirSync(currentDirectory);
+                }
+
+                for (var i = 0; i < endPage; i++) {
+                    getPageImagesLink(i);
+                }
+
+            } else {
+                console.log(error);
+            }
+        });
+
     } else {
         console.log('setting.json parse error!');
         return;
     }
 }
 
-function begin(startPage) {
+function getPageImagesLink(startPage) {
     fs.writeFile('result.json', '', function() {
-        console.log('reset result.json done');
+        // console.log('reset result.json done');
     });
-    if (!fs.existsSync(save_directory)) {
-        fs.mkdirSync(save_directory);
-    }
-
-    countloaded = 0;
-    console.log('request Begin! now at page: ' + startPage);
 
     request({
-        url: url + '?p=' + (parseInt(startPage, 10) - 1).toString(),
+        url: url + '?p=' + startPage,
         headers: {
             Cookie: cookie
         },
         jar: true
     }, function(error, response, body) {
 
-        console.log(url + '?p=' + (parseInt(startPage, 10) - 1).toString());
+        console.log('current url: ' + url + '?p=' + startPage);
 
         if (!error) {
             $ = cheerio.load(body);
-            eachImgPageArray = [];
 
             var pager = $(pagerSelector);
             endPage = $(pager[pager.length - 2]).text();
+            endPage = parseInt(endPage, 10);
 
             var title = $('title').text();
             title = title.trim().replace(/ /g, '_');
-            console.log(title);
 
             currentDirectory = save_directory + '/' + title;
-            console.log(currentDirectory);
             if (!fs.existsSync(currentDirectory)) {
                 fs.mkdirSync(currentDirectory);
             }
 
             var list = $('.gdtm a');
-            console.log(list.length);
+            console.log('current page\'s images number: ' + list.length);
             for (var i = 0; i < list.length; i++) {
                 tmp = $(list[i]).attr('href');
-                eachImgPageArray.push({
+                linkArray.push({
                     url: tmp,
-                    name: tmp.split('/')[5]
+                    name: tmp.split('/')[5],
+                    number: 40 * startPage + i + 1
                 });
-                console.log(eachImgPageArray[i].name);
             }
-
-            inputLength = eachImgPageArray.length;
-            if (inputLength < 40) {
-                endPage = -1;
-            }
-            eachPersent = 100 / inputLength;
-
-            for (i = 0; i < eachImgPageArray.length; i++) {
-                step2(eachImgPageArray[i], i);
-            }
-
+            singlePageLoaded(endPage);
         } else {
-            console.log(error);
+            console.log('getPageImagesLink error! retry.' + error);
+            getPageImagesLink(startPage);
         }
     });
 }
 
-function step2(input, number) {
+function singlePageLoaded(totalNumber) {
+    countloaded++;
+    if (countloaded == totalNumber) {
+        countloaded = 0;
+        console.reset();
+        console.log('100%');
+
+        linkArray.sort(function(a, b) {
+            return a.number - b.number;
+        });
+
+        // for (var i = 0; i < linkArray.length; i++) {
+        for (var i = 0; i < 10; i++) {
+            var singlePageObj = linkArray[i];
+            getImgSrcByLink(singlePageObj, 10);
+            // getImgSrcByLink(singlePageObj, linkArray.length);
+        }
+
+    } else {
+        console.reset();
+        console.log((countloaded * 100 / totalNumber).toFixed(2) + '%');
+    }
+}
+
+function getImgSrcByLink(linkObj, totalNumber) {
     request({
-        url: input.url,
+        url: linkObj.url,
         headers: {
-            Cookie: returnCookie()
+            Cookie: cookie
         },
-        jay: true
-    }, function(er, res, body2) {
-        if (!er) {
+        jar: true
+    }, function(error, response, body2) {
+
+        console.log('current url: ' + linkObj.url);
+
+        if (!error) {
             $ = cheerio.load(body2);
             var imgList = $('#img');
 
-            srcArray.push({
-                number: (parseInt(startPage) - 1) * 40 + parseInt(number),
-                src: imgList.attr('src'),
-                name: number + input.name,
-                type: imgList.attr('src').split('.')[imgList.attr('src').split('.').length - 1]
-            });
-            loadedFunction();
+            linkObj.src = imgList.attr('src');
+            linkObj.type = imgList.attr('src').split('.')[imgList.attr('src').split('.').length - 1];
+            srcArray.push(linkObj);
+
+            loadedFunction(totalNumber);
         } else {
-            console.log('error! retry~!');
-            step2(input, number);
+            console.log('getImgSrcByLink error! retry.' + error);
+            loadedFunction(totalNumber);
+            // getImgSrcByLink(linkObj, totalNumber);
         }
     });
 }
 
-function loadedFunction() {
+function loadedFunction(totalNumber) {
+    console.log(totalNumber);
     countloaded++;
-    if (countloaded == inputLength) {
-        console.log(countloaded * eachPersent + '%');
+    if (countloaded == totalNumber) {
         countloaded = 0;
-        result = null;
-        result = srcArray.slice();
+        // result = srcArray.slice();
+
+        console.log(srcArray);
+        console.log(srcArray.length);
+
+        return;
 
         startPage++;
         if (startPage <= endPage) {
@@ -160,7 +209,7 @@ function loadedFunction() {
             downloadTrigger();
         }
     } else {
-        console.log(countloaded * eachPersent + '%');
+        console.log((countloaded * 100 / totalNumber).toFixed(2) + '%');
     }
 }
 
@@ -216,6 +265,10 @@ function download(url, dir, filename) {
         }
 
     }).pipe(fs.createWriteStream(dir + '/' + filename));
+}
+
+console.reset = function() {
+    return process.stdout.write('\033c');
 }
 
 /*
