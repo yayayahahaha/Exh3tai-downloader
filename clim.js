@@ -1,6 +1,7 @@
 var request = require('request');
 var fs = require('fs');
 var cheerio = require('cheerio');
+var _ = require('lodash');
 
 var result = [],
     save_directory = './saveImg',
@@ -19,6 +20,10 @@ var result = [],
     urlIndex = 0,
 
     pagerSelector = 'table.ptt td',
+
+    linkChunkArray = [],
+    chunkIndex = 0,
+    chunkNumber = 10,
 
     url = '{put your url value in key url of setting.json }',
     cookie = '{put your cookie value in key cookie of setting.json }';
@@ -147,16 +152,19 @@ function singlePageLoaded(totalNumber) {
             return a.number - b.number;
         });
 
-        // for (var i = 0; i < linkArray.length; i++) {
-        for (var i = 0; i < 10; i++) {
-            var singlePageObj = linkArray[i];
-            getImgSrcByLink(singlePageObj, 10);
-            // getImgSrcByLink(singlePageObj, linkArray.length);
-        }
+        linkChunkArray = _.chunk(linkArray, chunkNumber);
+        chunkPieceRequest(linkChunkArray[chunkIndex], chunkNumber);
 
     } else {
         console.reset();
         console.log((countloaded * 100 / totalNumber).toFixed(2) + '%');
+    }
+}
+
+function chunkPieceRequest(linkArray, totalNumber) {
+    for (var i = 0; i < linkArray.length; i++) {
+        var singlePageObj = linkArray[i];
+        getImgSrcByLink(singlePageObj, linkArray.length);
     }
 }
 
