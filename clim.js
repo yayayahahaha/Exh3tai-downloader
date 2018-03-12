@@ -186,9 +186,14 @@ function getImgSrcByLink(linkObj, totalNumber) {
             if (taskIndex >= linkArray.length) {
                 if (srcArray.length === linkArray.length) {
                     console.log('get src complete! start download');
+                    fs.writeFile('result.json', JSON.stringify(srcArray), function() {
+                        console.log('write download src into result.json for testing');
+                    });
                     downloadTrigger();
                     return;
                 }
+                console.reset();
+                console.log(taskIndex, linkArray.length, srcArray.length);
             } else {
                 console.reset();
                 console.log(taskIndex, linkArray.length, srcArray.length);
@@ -208,7 +213,7 @@ function returnCookie() {
 function downloadTrigger() {
     countloaded = 0;
     taskIndex = originTaskIndex <= srcArray.length ? originTaskIndex : srcArray.length;
-    for (var i = 0; i < srcArray.length; i++) {
+    for (var i = 0; i <= taskIndex; i++) {
         download(srcArray[i].src, currentDirectory, srcArray[i].name + '.' + srcArray[i].type);
     }
 }
@@ -221,19 +226,24 @@ function download(url, dir, filename) {
     request(url, function(er, res, body) {
         if (!er) {
             countloaded++;
-            if (countloaded == srcArray) {
-                console.log('done!');
-                urlIndex++;
-                srcArray = []; //hope this time is correct!
-                // loadSetting(urlIndex);
+            taskIndex++;
+            if (taskIndex >= srcArray.length) {
+                if (countloaded >= srcArray.length) {
+                    console.log('done!');
+                    urlIndex++;
+                    srcArray = []; //hope this time is correct!
+                }
+                console.log(countloaded, linkArray.length, (countloaded * 100 / linkArray.length).toFixed(2) + '%');
             } else {
-                console.log(inputLength, countloaded);
-                // console.log(countloaded * eachPersent + '%');
+                console.log(countloaded, linkArray.length, (countloaded * 100 / linkArray.length).toFixed(2) + '%');
+                download(srcArray[taskIndex], currentDirectory, srcArray[taskIndex].name + '.' + srcArray[taskIndex].type);
             }
         } else {
-            console.log('download failed! retry.');
+            console.log('download failed! retry after 1 sec');
             console.log(er);
-            download(url, dir, filename);
+            setTimeout(function() {
+                download(url, dir, filename);
+            }, 1000);
         }
 
     }).pipe(fs.createWriteStream(dir + '/' + filename));
