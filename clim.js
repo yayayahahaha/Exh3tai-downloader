@@ -18,8 +18,8 @@ var result = [],
     $ = null,
     urlIndex = 0,
 
-    originTaskIndex = 30,
-    taskIndex = 30,
+    originTaskIndex = 16,
+    taskIndex = 16,
 
     pagerSelector = 'table.ptt td',
 
@@ -186,9 +186,15 @@ function getImgSrcByLink(linkObj, totalNumber) {
             if (taskIndex >= linkArray.length) {
                 if (srcArray.length === linkArray.length) {
                     console.log('get src complete! start download');
-                    fs.writeFile('result.json', JSON.stringify(srcArray), function() {
+                    fs.writeFile(currentDirectory + '.json', JSON.stringify(srcArray), function() {
                         console.log('write download src into result.json for testing');
+                        srcArray = [];
+                        linkArray = [];
+                        taskIndex = originTaskIndex;
+                        urlIndex++;
+                        loadSetting(urlIndex);
                     });
+                    return;
                     downloadTrigger();
                     return;
                 }
@@ -233,9 +239,9 @@ function download(url, dir, filename) {
                     urlIndex++;
                     srcArray = []; //hope this time is correct!
                 }
-                console.log(countloaded, linkArray.length, (countloaded * 100 / linkArray.length).toFixed(2) + '%');
+                console.log(countloaded, linkArray.length, taskIndex, (countloaded * 100 / linkArray.length).toFixed(2) + '%');
             } else {
-                console.log(countloaded, linkArray.length, (countloaded * 100 / linkArray.length).toFixed(2) + '%');
+                console.log(countloaded, linkArray.length, taskIndex, (countloaded * 100 / linkArray.length).toFixed(2) + '%');
                 download(srcArray[taskIndex], currentDirectory, srcArray[taskIndex].name + '.' + srcArray[taskIndex].type);
             }
         } else {
