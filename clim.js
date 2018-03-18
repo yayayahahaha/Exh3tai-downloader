@@ -76,8 +76,15 @@ function loadSetting() {
 
                 currentDirectory = save_directory + '/' + title;
                 console.log('save in directory: ' + currentDirectory);
-                if (!fs.existsSync(currentDirectory)) {
-                    fs.mkdirSync(currentDirectory);
+                try {
+                    if (!fs.existsSync(currentDirectory)) {
+                        fs.mkdirSync(currentDirectory);
+                    }
+                } catch (e) {
+                    currentDirectory = save_directory + '/' + title.replace(/\W/g, '_');
+                    if (!fs.existsSync(currentDirectory)) {
+                        fs.mkdirSync(currentDirectory);
+                    }
                 }
 
                 for (var i = 0; i < endPage; i++) {
@@ -120,11 +127,6 @@ function getPageImagesLink(startPage) {
             var title = $('title').text();
             title = title.trim().replace(/ /g, '_');
 
-            currentDirectory = save_directory + '/' + title;
-            if (!fs.existsSync(currentDirectory)) {
-                fs.mkdirSync(currentDirectory);
-            }
-
             var list = $('.gdtm a');
             console.log('current page\'s images number: ' + list.length);
             for (var i = 0; i < list.length; i++) {
@@ -154,7 +156,7 @@ function singlePageLoaded(totalNumber) {
             return a.number - b.number;
         });
 
-        taskIndex = taskIndex <= linkArray.length ? taskIndex : linkArray.length;
+        taskIndex = taskIndex < linkArray.length ? taskIndex : linkArray.length - 1;
         for (var i = 0; i <= taskIndex; i++) {
             getImgSrcByLink(linkArray[i]);
         }
