@@ -1,25 +1,16 @@
 {
-  "dependencies": {
-    "cheerio": "^1.0.0-rc.10",
-    "request": "^2.83.0"
-  },
   "name": "Exh3tai-downloader",
-  "description": "you know, me know, we a11 know",
   "version": "1.0.0",
-  "main": "main.js",
-  "devDependencies": {},
+  "author": "flyc",
+  "description": "you know, me know, we a11 know",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/yayayahahaha/Exh3tai-downloader.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/yayayahahaha/Exh3tai-downloader/issues"
-  },
-  "homepage": "https://github.com/yayayahahaha/Exh3tai-downloader#readme"
+  "devDependencies": {},
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.10",
+    "request": "^2.83.0",
+    "node-fetch": "^2.6.1",
+    "npm-flyc": "^1.0.10"
+  }
 }
