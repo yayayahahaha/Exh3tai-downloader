@@ -1,6 +1,6 @@
-var request = require('request')
-var fs = require('fs')
-var cheerio = require('cheerio')
+const request = require('request')
+const fs = require('fs')
+const cheerio = require('cheerio')
 
 var result = [],
   save_directory = './saveImg',
@@ -183,6 +183,7 @@ function getImgSrcByLink(linkObj, totalNumber) {
         if (taskIndex >= linkArray.length) {
           if (srcArray.length === linkArray.length) {
             console.log('get src complete! start download')
+
             fs.writeFile(currentDirectory + '.json', JSON.stringify(srcArray), function () {
               console.log('write download src into result.json for testing')
               srcArray = []
@@ -191,7 +192,6 @@ function getImgSrcByLink(linkObj, totalNumber) {
               urlIndex++
               loadSetting(urlIndex)
             })
-            return
             downloadTrigger()
             return
           }
@@ -218,12 +218,12 @@ function downloadTrigger() {
   countloaded = 0
   taskIndex = originTaskIndex <= srcArray.length ? originTaskIndex : srcArray.length
   for (var i = 0; i <= taskIndex; i++) {
+    if (!srcArray[i]) continue
     download(srcArray[i].src, currentDirectory, srcArray[i].name + '.' + srcArray[i].type)
   }
 }
 
 function download(url, dir, filename) {
-  console.log('download url:', url)
   if (!url || !dir || !filename) {
     console.log('download parameter lost!')
     return
