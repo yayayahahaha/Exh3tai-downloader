@@ -2,96 +2,112 @@ const request = require('request')
 const fs = require('fs')
 const cheerio = require('cheerio')
 
-var result = [],
-  save_directory = './saveImg',
-  linkArray = [],
-  srcArray = [],
-  countloaded = 0,
-  currentDirectory = '',
-  startPage = 1,
-  endPage = null,
-  $ = null,
-  urlIndex = 0,
-  originTaskIndex = 16,
-  taskIndex = 16,
-  pagerSelector = 'table.ptt td',
-  linkChunkArray = [],
-  chunkIndex = 0,
-  chunkNumber = 10,
-  url = '{put your url value in key url of setting.json }',
-  cookie = '{put your cookie value in key cookie of setting.json }'
+const save_directory = './saveImg'
+const result = []
+const linkArray = []
+const srcArray = []
+const countloaded = 0
+const currentDirectory = ''
+const startPage = 1
+const endPage = null
+const $ = null
+const originTaskIndex = 16
+const taskIndex = 16
+const pagerSelector = 'table.ptt td'
+const linkChunkArray = []
+const chunkIndex = 0
+const chunkNumber = 10
 
-console.log('***************')
-console.log('Download Start!')
-console.log('***************')
-if (!fs.existsSync(save_directory)) {
-  fs.mkdirSync(save_directory)
+let url = '{put your url value in key url of setting.json }'
+let cookie = '{put your cookie value in key cookie of setting.json }'
+
+const globalVariable = {
+  cookie: ''
 }
-loadSetting(urlIndex)
 
-function loadSetting() {
-  console.log('Load setting info:')
-  var content = fs.readFileSync('setting.json'),
+const showError = (where, content) => console.error(`[${where}] ${content}`)
+const stepMessage = (content, length = 7) =>
+  console.log(`${Array(length).fill('=').join('')} ${content} ${Array(length).fill('=').join('')}`)
+
+const createRequestHeader = url => ({
+  url,
+  headers: { Cookie: globalVariable.cookie },
+  jar: true
+})
+
+console.log("Let's Go!")
+console.log()
+if (!fs.existsSync(save_directory)) fs.mkdirSync(save_directory)
+
+start()
+
+function start() {
+  stepMessage('Load setting.json')
+  const content = fs.readFileSync('setting.json')
+
+  let jsonContent = null
+  try {
     jsonContent = JSON.parse(content)
-  if (jsonContent.cookie && jsonContent.url) {
-    if (urlIndex >= jsonContent.url.length) {
-      console.log('all url links downloaded!')
-      console.log('complete!')
-      return
+  } catch (e) {
+    return void showError('Parse setting.json', 'JSON.parse failed!')
+  }
+
+  const { cookie, url: urlList } = jsonContent
+  if (!cookie || !url) return void showError('Parse setting.json', 'attribute missing!')
+
+  globalVariable.cookie = cookie
+
+  console.log('Load setting.json success')
+  console.log()
+
+  getUrlInfo(0, { cookie, urlList })
+}
+
+// 會被遞迴執行
+function getUrlInfo(urlIndex, setting) {
+  const { cookie, urlList } = setting
+  const currentUrl = urlList[urlIndex]
+
+  if (urlIndex >= urlList.length) return void console.log('COMPLETE >w<//')
+
+  // console.log('your cookie is: ' + jsonContent.cookie);
+  stepMessage('Get Url Info')
+  console.log(`current fetch url: ${currentUrl}`)
+
+  // TODO check what is this startPage = 1
+  request(createRequestHeader(currentUrl), function (error, response, body) {
+    if (error) return void showError('getUrlInfo', 'get url basic info failed!')
+
+    const $ = cheerio.load(body)
+
+    const pager = $(pagerSelector)
+    const endPage = parseInt($(pager[pager.length - 2]).text(), 10)
+    if (isNaN(endPage)) return void showError('endPage', 'endPage is not a number')
+
+    const title = $('title').text().trim().replace(/ /g, '_')
+    console.log('get url info success')
+    console.log("gallery's title: " + title)
+    console.log(`total page: ${endPage}`)
+
+    return
+
+    currentDirectory = save_directory + '/' + title
+    console.log('save in directory: ' + currentDirectory)
+    try {
+      if (!fs.existsSync(currentDirectory)) {
+        fs.mkdirSync(currentDirectory)
+      }
+    } catch (e) {
+      currentDirectory = save_directory + '/' + title.replace(/\W/g, '_')
+      if (!fs.existsSync(currentDirectory)) {
+        fs.mkdirSync(currentDirectory)
+      }
     }
 
-    // console.log('your cookie is: ' + jsonContent.cookie);
-    console.log('Your url is: ' + JSON.stringify(jsonContent.url[urlIndex]))
-
-    cookie = jsonContent.cookie
-    url = jsonContent.url[urlIndex]
-    startPage = 1
-
-    request(
-      {
-        url: url,
-        headers: {
-          Cookie: cookie
-        },
-        jar: true
-      },
-      function (error, response, body) {
-        if (!error) {
-          $ = cheerio.load(body)
-
-          var pager = $(pagerSelector)
-          endPage = $(pager[pager.length - 2]).text()
-          endPage = parseInt(endPage, 10)
-
-          var title = $('title').text()
-          title = title.trim().replace(/ /g, '_')
-          console.log("gallery's title: " + title)
-
-          currentDirectory = save_directory + '/' + title
-          console.log('save in directory: ' + currentDirectory)
-          try {
-            if (!fs.existsSync(currentDirectory)) {
-              fs.mkdirSync(currentDirectory)
-            }
-          } catch (e) {
-            currentDirectory = save_directory + '/' + title.replace(/\W/g, '_')
-            if (!fs.existsSync(currentDirectory)) {
-              fs.mkdirSync(currentDirectory)
-            }
-          }
-
-          for (var i = 0; i < endPage; i++) {
-            getPageImagesLink(i)
-          }
-        } else {
-          console.log(error)
-        }
-      }
-    )
-  } else {
-    console.log('setting.json parse error!')
-    return
-  }
+    for (var i = 0; i < endPage; i++) {
+      getPageImagesLink(i)
+    }
+  })
 }
 
 function getPageImagesLink(startPage) {
@@ -190,7 +206,7 @@ function getImgSrcByLink(linkObj, totalNumber) {
               linkArray = []
               taskIndex = originTaskIndex
               urlIndex++
-              loadSetting(urlIndex)
+              getUrlInfo(urlIndex)
             })
             downloadTrigger()
             return
