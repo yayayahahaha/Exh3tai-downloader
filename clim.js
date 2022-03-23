@@ -14,7 +14,6 @@ const endPage = null
 const $ = null
 const originTaskIndex = 16
 const taskIndex = 16
-const pagerSelector = 'table.ptt td'
 const linkChunkArray = []
 const chunkIndex = 0
 const chunkNumber = 10
@@ -26,6 +25,11 @@ const showError = (where, content) => console.error(`[${where}] ${content}`)
 const stepMessage = (content, length = 7) => {
   const headTail = Array(length).fill('=').join('')
   console.log(`${headTail} ${content} ${headTail}`)
+}
+const getEndPage = $ => {
+  const pagerSelector = 'table.ptt td'
+  const pager = $(pagerSelector)
+  return parseInt($(pager[pager.length - 2]).text(), 10)
 }
 const createRequestHeader = url => ({
   url,
@@ -43,16 +47,23 @@ if (!fs.existsSync(SAVE_DIRECTORY)) fs.mkdirSync(SAVE_DIRECTORY)
 
 start()
 
-function start() {
-  stepMessage('Load setting.json')
+function readSettingInfo() {
   const content = fs.readFileSync('setting.json')
-
   let jsonContent = null
+
   try {
     jsonContent = JSON.parse(content)
   } catch (e) {
-    return void showError('Parse setting.json', 'JSON.parse failed!')
+    showError('Parse setting.json', 'JSON.parse failed!')
+    jsonContent = {}
   }
+
+  return jsonContent
+}
+
+async function start() {
+  stepMessage('Load setting.json')
+  const jsonContent = readSettingInfo()
 
   const { cookie, url: urlList } = jsonContent
   if (!cookie || !urlList) return void showError('Parse setting.json', 'attribute missing!')
@@ -62,7 +73,9 @@ function start() {
   console.log('Load setting.json success')
   console.log()
 
-  getUrlInfo(0, { cookie, urlList })
+  const [response, error] = await getUrlInfo(0, { cookie, urlList })
+  if (error) return // TODO error check
+  console.log(JSON.stringify(response, null, 2))
 }
 
 // 會被遞迴執行
@@ -77,33 +90,33 @@ function getUrlInfo(urlIndex, setting) {
   console.log(`current fetch url: ${currentUrl}`)
 
   // TODO check what is this ? startPage = 1
-  request(createRequestHeader(currentUrl), function (error, response, body) {
-    if (error) return void showError('getUrlInfo', 'get url basic info failed!')
+  return new Promise(resolve =>
+    request(createRequestHeader(currentUrl), function (error, _, body) {
+      if (error) {
+        showError('getUrlInfo', 'get url basic info failed!')
+        return resolve([null, error])
+      }
 
-    const $ = cheerio.load(body)
+      const $ = cheerio.load(body)
 
-    const pager = $(pagerSelector)
-    const endPage = parseInt($(pager[pager.length - 2]).text(), 10)
-    if (isNaN(endPage)) return void showError('endPage', 'endPage is not a number')
+      const endPage = getEndPage($)
+      if (isNaN(endPage)) return void showError('endPage', 'endPage is not a number')
 
-    const title = $('title').text().trim().replace(/ /g, '_')
-    const directory = SAVE_DIRECTORY + '/' + title.replace(/\W/g, '_')
-    const id = getId(currentUrl)
-    globalVariable.folderMap[id] = { directory }
+      const title = $('title').text().trim().replace(/ /g, '_')
+      const directory = SAVE_DIRECTORY + '/' + title.replace(/\W/g, '_')
+      const id = getId(currentUrl)
+      globalVariable.folderMap[id] = { directory }
 
-    if (!fs.existsSync(directory)) fs.mkdirSync(directory)
+      if (!fs.existsSync(directory)) fs.mkdirSync(directory)
 
-    console.log('get url info success')
-    console.log("gallery's title: " + title)
-    console.log(`total page: ${endPage}`)
-    console.log(`save in directory: ${directory}`)
+      console.log('get url info success')
+      console.log("gallery's title: " + title)
+      console.log(`total page: ${endPage}`)
+      console.log(`save in directory: ${directory}`)
 
-    return
-
-    for (var i = 0; i < endPage; i++) {
-      getPageImagesLink(i)
-    }
-  })
+      return resolve([{ endPage, directory, id, title }, null])
+    })
+  )
 }
 
 function getPageImagesLink(startPage) {
