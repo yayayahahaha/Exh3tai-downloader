@@ -3,15 +3,15 @@ const fs = require('fs')
 const cheerio = require('cheerio')
 const { head } = require('request')
 const { getHeapCodeStatistics } = require('v8')
+const { resolve } = require('dns')
+
+const { TaskSystem, download } = require('npm-flyc')
+const { end } = require('cheerio/lib/api/traversing')
+const defaultTaskSetting = () => ({ randomDelay: 0 })
 
 const result = []
-const linkArray = []
 const srcArray = []
 const countloaded = 0
-const currentDirectory = ''
-const startPage = 1
-const endPage = null
-const $ = null
 const originTaskIndex = 16
 const taskIndex = 16
 const linkChunkArray = []
@@ -24,6 +24,7 @@ const getId = url => url.match(/\/\/exhentai.org\/([^?]*)?/)[1].replace(/\//g, '
 const showError = (where, content) => console.error(`[${where}] ${content}`)
 const stepMessage = (content, length = 7) => {
   const headTail = Array(length).fill('=').join('')
+  console.log()
   console.log(`${headTail} ${content} ${headTail}`)
 }
 const getEndPage = $ => {
@@ -42,7 +43,6 @@ const globalVariable = {
 }
 
 console.log("Let's Go!")
-console.log()
 if (!fs.existsSync(SAVE_DIRECTORY)) fs.mkdirSync(SAVE_DIRECTORY)
 
 start()
@@ -71,14 +71,18 @@ async function start() {
   globalVariable.cookie = cookie
 
   console.log('Load setting.json success')
-  console.log()
 
-  const [response, error] = await getUrlInfo(0, { cookie, urlList })
-  if (error) return // TODO error check
-  console.log(JSON.stringify(response, null, 2))
+  const [response, getUrlError] = await getUrlInfo(0, { cookie, urlList })
+  if (getUrlError) return // TODO error check
+
+  const { url, endPage, id } = response
+  const [eachPageList, eachPageError] = await getEachPageImagesLink({ url, endPage, id })
+  if (eachPageError) return // TODO error check
+
+  console.log(eachPageList)
 }
 
-// 會被遞迴執行
+// 會被遞迴執行?
 function getUrlInfo(urlIndex, setting) {
   const { cookie, urlList } = setting
   const currentUrl = urlList[urlIndex]
@@ -105,7 +109,7 @@ function getUrlInfo(urlIndex, setting) {
       const title = $('title').text().trim().replace(/ /g, '_')
       const directory = SAVE_DIRECTORY + '/' + title.replace(/\W/g, '_')
       const id = getId(currentUrl)
-      globalVariable.folderMap[id] = { directory }
+      globalVariable.folderMap[id] = { directory, endPage, id, title, url: currentUrl }
 
       if (!fs.existsSync(directory)) fs.mkdirSync(directory)
 
@@ -114,54 +118,66 @@ function getUrlInfo(urlIndex, setting) {
       console.log(`total page: ${endPage}`)
       console.log(`save in directory: ${directory}`)
 
-      return resolve([{ endPage, directory, id, title }, null])
+      return resolve([{ endPage, directory, id, title, url: currentUrl }, null])
     })
   )
 }
 
-function getPageImagesLink(startPage) {
-  fs.writeFile('result.json', '', function () {
-    // console.log('reset result.json done');
-  })
+async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
+  stepMessage('getEachPageImagesLink')
+  const url = rowUrl.replace(/\?.*$/, '')
+  const permissionList = _createEachPageImagesLinkTask(url, endPage)
 
-  request(
-    {
-      url: url + '?p=' + startPage,
-      headers: {
-        Cookie: cookie
-      },
-      jar: true
-    },
-    function (error, response, body) {
-      // console.log('current url: ' + url + '?p=' + startPage);
+  const taskNumber = 1
+  const task_search = new TaskSystem(permissionList, taskNumber, defaultTaskSetting())
 
-      if (!error) {
-        $ = cheerio.load(body)
+  let allPagesImagesArray = (await task_search.doPromise()).filter(result => result.status === 1)
 
-        var pager = $(pagerSelector)
-        endPage = $(pager[pager.length - 2]).text()
-        endPage = parseInt(endPage, 10)
+  // TODO retry, 而且是必要的
+  if (allPagesImagesArray.length !== endPage) {
+    console.log('有失敗的頁數!!!!!!')
+    console.log('有失敗的頁數!!!!!!')
+    console.log('有失敗的頁數!!!!!!')
+    console.log('有失敗的頁數!!!!!!')
+  }
 
-        var title = $('title').text()
-        title = title.trim().replace(/ /g, '_')
+  allPagesImagesArray = allPagesImagesArray
+    .map(({ data }) => data)
+    .reduce((list, pageInfo) => list.concat(pageInfo), [])
 
-        var list = $('.gdtm a')
-        console.log("current page's images number: " + list.length)
-        for (var i = 0; i < list.length; i++) {
-          tmp = $(list[i]).attr('href')
-          linkArray.push({
-            url: tmp,
-            name: tmp.split('/')[5],
-            number: 40 * startPage + i + 1
+  return [allPagesImagesArray, null]
+
+  function _createEachPageImagesLinkTask(url, endPage) {
+    return [...Array(endPage)].map((_, page) => {
+      const urlWithPage = `${url}?p=${page}`
+      return function () {
+        return new Promise((resolve, reject) => {
+          request(createRequestHeader(urlWithPage), function (error, response, body) {
+            if (error) {
+              showError(`get ${urlWithPage}`, 'api request failed')
+              return reject(error)
+            }
+
+            const $ = cheerio.load(body)
+            const list = $('.gdtm a')
+            const linkArray = []
+
+            let temp = null
+            for (let i = 0; i < list.length; i++) {
+              temp = $(list[i]).attr('href')
+              linkArray.push({
+                url: temp,
+                name: temp.split('/')[5],
+                number: 40 * page + i + 1
+              })
+            }
+
+            return resolve(linkArray)
           })
-        }
-        singlePageLoaded(endPage)
-      } else {
-        console.log('getPageImagesLink error! retry.' + error)
-        getPageImagesLink(startPage)
+        })
       }
-    }
-  )
+    })
+  }
 }
 
 function singlePageLoaded(totalNumber) {
@@ -235,10 +251,6 @@ function getImgSrcByLink(linkObj, totalNumber) {
   )
 }
 
-function returnCookie() {
-  return cookie
-}
-
 function downloadTrigger() {
   countloaded = 0
   taskIndex = originTaskIndex <= srcArray.length ? originTaskIndex : srcArray.length
@@ -248,44 +260,6 @@ function downloadTrigger() {
   }
 }
 
-function download(url, dir, filename) {
-  if (!url || !dir || !filename) {
-    console.log('download parameter lost!')
-    return
-  }
-  request(url, function (er, res, body) {
-    if (!er) {
-      countloaded++
-      taskIndex++
-      if (taskIndex >= srcArray.length) {
-        if (countloaded >= srcArray.length) {
-          console.log('done!')
-          urlIndex++
-          srcArray = [] //hope this time is correct!
-        }
-        console.log(countloaded, linkArray.length, taskIndex, ((countloaded * 100) / linkArray.length).toFixed(2) + '%')
-      } else {
-        console.log(countloaded, linkArray.length, taskIndex, ((countloaded * 100) / linkArray.length).toFixed(2) + '%')
-        download(srcArray[taskIndex], currentDirectory, srcArray[taskIndex].name + '.' + srcArray[taskIndex].type)
-      }
-    } else {
-      console.log('download failed! retry after 1 sec')
-      console.log(er)
-      setTimeout(function () {
-        download(url, dir, filename)
-      }, 1000)
-    }
-  }).pipe(fs.createWriteStream(dir + '/' + filename))
-}
-
 console.reset = function () {
   return process.stdout.write('\033c')
 }
-
-/*
-temp = [];
-[].forEach.call(document.querySelectorAll('.id3 a'), function(item){
-    temp.push(item.href)
-})
-console.log(JSON.stringify(temp))
-*/
