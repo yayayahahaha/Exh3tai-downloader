@@ -1,8 +1,9 @@
 const request = require('request')
 const fs = require('fs')
 const cheerio = require('cheerio')
+const { head } = require('request')
+const { getHeapCodeStatistics } = require('v8')
 
-const save_directory = './saveImg'
 const result = []
 const linkArray = []
 const srcArray = []
@@ -18,26 +19,27 @@ const linkChunkArray = []
 const chunkIndex = 0
 const chunkNumber = 10
 
-let url = '{put your url value in key url of setting.json }'
-let cookie = '{put your cookie value in key cookie of setting.json }'
+const SAVE_DIRECTORY = './saveImg'
 
-const globalVariable = {
-  cookie: ''
-}
-
+const getId = url => url.match(/\/\/exhentai.org\/([^?]*)?/)[1].replace(/\//g, '-')
 const showError = (where, content) => console.error(`[${where}] ${content}`)
-const stepMessage = (content, length = 7) =>
-  console.log(`${Array(length).fill('=').join('')} ${content} ${Array(length).fill('=').join('')}`)
-
+const stepMessage = (content, length = 7) => {
+  const headTail = Array(length).fill('=').join('')
+  console.log(`${headTail} ${content} ${headTail}`)
+}
 const createRequestHeader = url => ({
   url,
   headers: { Cookie: globalVariable.cookie },
   jar: true
 })
+const globalVariable = {
+  cookie: '',
+  folderMap: {}
+}
 
 console.log("Let's Go!")
 console.log()
-if (!fs.existsSync(save_directory)) fs.mkdirSync(save_directory)
+if (!fs.existsSync(SAVE_DIRECTORY)) fs.mkdirSync(SAVE_DIRECTORY)
 
 start()
 
@@ -53,7 +55,7 @@ function start() {
   }
 
   const { cookie, url: urlList } = jsonContent
-  if (!cookie || !url) return void showError('Parse setting.json', 'attribute missing!')
+  if (!cookie || !urlList) return void showError('Parse setting.json', 'attribute missing!')
 
   globalVariable.cookie = cookie
 
@@ -74,7 +76,7 @@ function getUrlInfo(urlIndex, setting) {
   stepMessage('Get Url Info')
   console.log(`current fetch url: ${currentUrl}`)
 
-  // TODO check what is this startPage = 1
+  // TODO check what is this ? startPage = 1
   request(createRequestHeader(currentUrl), function (error, response, body) {
     if (error) return void showError('getUrlInfo', 'get url basic info failed!')
 
@@ -85,24 +87,18 @@ function getUrlInfo(urlIndex, setting) {
     if (isNaN(endPage)) return void showError('endPage', 'endPage is not a number')
 
     const title = $('title').text().trim().replace(/ /g, '_')
+    const directory = SAVE_DIRECTORY + '/' + title.replace(/\W/g, '_')
+    const id = getId(currentUrl)
+    globalVariable.folderMap[id] = { directory }
+
+    if (!fs.existsSync(directory)) fs.mkdirSync(directory)
+
     console.log('get url info success')
     console.log("gallery's title: " + title)
     console.log(`total page: ${endPage}`)
+    console.log(`save in directory: ${directory}`)
 
     return
-
-    currentDirectory = save_directory + '/' + title
-    console.log('save in directory: ' + currentDirectory)
-    try {
-      if (!fs.existsSync(currentDirectory)) {
-        fs.mkdirSync(currentDirectory)
-      }
-    } catch (e) {
-      currentDirectory = save_directory + '/' + title.replace(/\W/g, '_')
-      if (!fs.existsSync(currentDirectory)) {
-        fs.mkdirSync(currentDirectory)
-      }
-    }
 
     for (var i = 0; i < endPage; i++) {
       getPageImagesLink(i)
