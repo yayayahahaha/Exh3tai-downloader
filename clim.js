@@ -82,6 +82,8 @@ async function start() {
   const [allImageInfoList, imageInfoError] = await getEachImageInfo(allImageLinkList)
   if (imageInfoError) return // TODO error check
 
+  fs.writeFileSync('result.json', JSON.stringify(allImageInfoList, null, 2))
+
   await startDownload(allImageInfoList)
   console.log('完成囉!!!!')
 
@@ -112,7 +114,7 @@ async function startDownload(list) {
       const filePath = `${directory}/${name}.${type}`
 
       return function () {
-        return download(url, filePath, {
+        return download(src, filePath, {
           headers: { Cookie: globalVariable.cookie }
         })
       }
