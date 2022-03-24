@@ -4,6 +4,7 @@
 // 2. 撰寫階段性的下載機制: 像是直接匯入已經進到某些頁面的網址之類的
 // 雖然這樣說但 p=0 之類的其實沒有什麼區別..
 // 再看看要用參數之類的去處理這件事情
+// 3. 避免使用 request, 他已經被拋棄了, 要注意也要有 request 的 headers 功能
 
 const request = require('request')
 const fs = require('fs')
