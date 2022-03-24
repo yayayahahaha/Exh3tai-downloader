@@ -8,7 +8,6 @@
 // 4. 避免使用cheerio ? 但好像也沒差的感覺
 
 import fetch from 'node-fetch'
-import request from 'request'
 import fs from 'fs'
 import cheerio from 'cheerio'
 import { TaskSystem, download } from 'npm-flyc'
