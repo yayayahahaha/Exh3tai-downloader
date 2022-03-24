@@ -1,3 +1,11 @@
+// TODO
+// 當task 發生 error 的時候要把那些 error 抓出來 retry
+// -> 這個功能看如果可以的話要寫進 TaskSystem 裡面?
+// 撰寫 eslint ，先撰寫就算專案沒有 eslint 也會有的全局設定
+// 再撰寫如果專案有的話要以專案優先的那種設定
+// 撰寫階段性的下載機制: 雖然這樣說但 p=0 之類的其實沒有什麼區別..
+// 再看看要用參數之類的去處理這件事情
+
 const request = require('request')
 const fs = require('fs')
 const cheerio = require('cheerio')
