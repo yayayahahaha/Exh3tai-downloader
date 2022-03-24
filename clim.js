@@ -12,7 +12,7 @@ import fs from 'fs'
 import cheerio from 'cheerio'
 import { TaskSystem, download } from 'npm-flyc'
 
-const defaultTaskSetting = (randomDelay = 0) => ({ randomDelay })
+const defaultTaskSetting = (randomDelay = 0, retry = true) => ({ randomDelay, retry })
 
 const SAVE_DIRECTORY = './saveImg'
 
@@ -95,13 +95,6 @@ async function startDownload(list) {
   const task_search = new TaskSystem(taskList, taskNumber, defaultTaskSetting(500))
 
   let allPagesImagesArray = (await task_search.doPromise()).filter(result => result.status === 1)
-  // TODO retry, 而且是必要的
-  if (allPagesImagesArray.length !== taskList.length) {
-    console.log('有失敗的單一圖片下載!!!!!!')
-    console.log('有失敗的單一圖片下載!!!!!!')
-    console.log('有失敗的單一圖片下載!!!!!!')
-    console.log('有失敗的單一圖片下載!!!!!!')
-  }
   allPagesImagesArray = allPagesImagesArray.map(({ data }) => data)
 
   return [allPagesImagesArray, null]
@@ -128,13 +121,6 @@ async function getEachImageInfo(allImageLinkList) {
   const task_search = new TaskSystem(taskList, taskNumber, defaultTaskSetting(500))
 
   let allPagesImagesArray = (await task_search.doPromise()).filter(result => result.status === 1)
-  // TODO retry, 而且是必要的
-  if (allPagesImagesArray.length !== taskList.length) {
-    console.log('有失敗的單一圖片頁面!!!!!!')
-    console.log('有失敗的單一圖片頁面!!!!!!')
-    console.log('有失敗的單一圖片頁面!!!!!!')
-    console.log('有失敗的單一圖片頁面!!!!!!')
-  }
   allPagesImagesArray = allPagesImagesArray.map(({ data }) => data)
 
   return [allPagesImagesArray, null]
@@ -177,15 +163,6 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
   const task_search = new TaskSystem(permissionList, taskNumber, defaultTaskSetting())
 
   let allPagesImagesArray = (await task_search.doPromise()).filter(result => result.status === 1)
-
-  // TODO retry, 而且是必要的
-  if (allPagesImagesArray.length !== endPage) {
-    console.log('有失敗的頁數!!!!!!')
-    console.log('有失敗的頁數!!!!!!')
-    console.log('有失敗的頁數!!!!!!')
-    console.log('有失敗的頁數!!!!!!')
-  }
-
   allPagesImagesArray = allPagesImagesArray
     .map(({ data }) => data)
     .reduce((list, pageInfo) => list.concat(pageInfo), [])
