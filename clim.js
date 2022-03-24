@@ -5,6 +5,7 @@
 // 雖然這樣說但 p=0 之類的其實沒有什麼區別..
 // 再看看要用參數之類的去處理這件事情
 // 3. 避免使用 request, 他已經被拋棄了, 要注意也要有 request 的 headers 功能
+// 4. 避免使用cheerio ? 但好像也沒差的感覺
 
 import fetch from 'node-fetch'
 import request from 'request'
