@@ -192,32 +192,33 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
   function _createEachPageImagesLinkTask(url, endPage) {
     return [...Array(endPage)].map((_, page) => {
       const urlWithPage = `${url}?p=${page}`
+
       return function () {
-        return new Promise((resolve, reject) => {
-          request(createRequestHeader(urlWithPage), function (error, response, body) {
-            if (error) {
-              showError(`get ${urlWithPage}`, 'api request failed')
-              return reject(error)
-            }
+        return new Promise(_eachPageLinkPromise)
+      }
 
-            const $ = cheerio.load(body)
-            const list = $('.gdtm a')
-            const linkArray = []
+      async function _eachPageLinkPromise(resolve, reject) {
+        const res = await fetch(urlWithPage, createRequestHeader())
+        if (!res.ok) {
+          showError(`get ${urlWithPage}`, 'api request failed')
+          return reject(res.statusText)
+        }
 
-            let temp = null
-            for (let i = 0; i < list.length; i++) {
-              temp = $(list[i]).attr('href')
-              linkArray.push({
-                id,
-                url: temp,
-                name: temp.split('/')[5],
-                sort: 40 * page + i + 1
-              })
-            }
-
-            return resolve(linkArray)
-          })
+        const body = await res.text()
+        const $ = cheerio.load(body)
+        const list = $('.gdtm a')
+        const linkArray = [...list].map((item, index) => {
+          const href = $(item).attr('href')
+          return {
+            id,
+            url: url,
+            eachPageUrl: href,
+            name: href.split('/')[5],
+            sort: 40 * page + index + 1
+          }
         })
+
+        return resolve(linkArray)
       }
     })
   }
