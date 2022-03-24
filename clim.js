@@ -6,11 +6,12 @@
 // 再看看要用參數之類的去處理這件事情
 // 3. 避免使用 request, 他已經被拋棄了, 要注意也要有 request 的 headers 功能
 
-const request = require('request')
-const fs = require('fs')
-const cheerio = require('cheerio')
+import fetch from 'node-fetch'
+import request from 'request'
+import fs from 'fs'
+import cheerio from 'cheerio'
+import { TaskSystem, download } from 'npm-flyc'
 
-const { TaskSystem, download } = require('npm-flyc')
 const defaultTaskSetting = (randomDelay = 0) => ({ randomDelay })
 
 const SAVE_DIRECTORY = './saveImg'
@@ -30,7 +31,7 @@ const getEndPage = $ => {
 const createRequestHeader = url => ({
   url,
   headers: { Cookie: globalVariable.cookie },
-  jar: true
+  jar: url ? true : undefined
 })
 const globalVariable = {
   cookie: '',
@@ -231,33 +232,34 @@ function getUrlInfo(urlIndex, setting) {
   stepMessage('Get Url Info')
   console.log(`current fetch url: ${currentUrl}`)
 
-  return new Promise(resolve =>
-    request(createRequestHeader(currentUrl), function (error, _, body) {
-      if (error) {
-        showError('getUrlInfo', 'get url basic info failed!')
-        return resolve([null, error])
-      }
+  return new Promise(_getUrlInfoPromise)
 
-      const $ = cheerio.load(body)
+  async function _getUrlInfoPromise(resolve) {
+    const res = await fetch(currentUrl, createRequestHeader())
+    if (!res.ok) {
+      showError('getUrlInfo', 'get url basic info failed!')
+      return resolve([null, new Error(res.statusText)])
+    }
+    const body = await res.text()
+    const $ = cheerio.load(body)
 
-      const endPage = getEndPage($)
-      if (isNaN(endPage)) return void showError('endPage', 'endPage is not a number')
+    const endPage = getEndPage($)
+    if (isNaN(endPage)) return void showError('endPage', 'endPage is not a number')
 
-      const title = $('title').text().trim().replace(/ /g, '_')
-      const directory = SAVE_DIRECTORY + '/' + title.replace(/\W/g, '_')
-      const id = getId(currentUrl)
-      globalVariable.folderMap[id] = { directory, endPage, id, title, url: currentUrl }
+    const title = $('title').text().trim().replace(/ /g, '_')
+    const directory = SAVE_DIRECTORY + '/' + title.replace(/\W/g, '_')
+    const id = getId(currentUrl)
+    globalVariable.folderMap[id] = { directory, endPage, id, title, url: currentUrl }
 
-      if (!fs.existsSync(directory)) fs.mkdirSync(directory)
+    if (!fs.existsSync(directory)) fs.mkdirSync(directory)
 
-      console.log('get url info success')
-      console.log("gallery's title: " + title)
-      console.log(`total page: ${endPage}`)
-      console.log(`save in directory: ${directory}`)
+    console.log('get url info success')
+    console.log("gallery's title: " + title)
+    console.log(`total page: ${endPage}`)
+    console.log(`save in directory: ${directory}`)
 
-      return resolve([{ endPage, directory, id, title, url: currentUrl }, null])
-    })
-  )
+    return resolve([{ endPage, directory, id, title, url: currentUrl }, null])
+  }
 }
 
 console.reset = process.stdout.write('\0') // process.stdout.write('\033c')
