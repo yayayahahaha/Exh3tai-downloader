@@ -89,6 +89,8 @@ async function start() {
 }
 
 async function getEachImageInfoAndDownload(allImageLinkList) {
+  stepMessage('getEachImageInfoAndDownload')
+
   const taskList = _create_task(allImageLinkList)
 
   const taskNumber = 2
