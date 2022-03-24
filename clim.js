@@ -101,18 +101,19 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
 
   function _create_task(list) {
     return list.map(info => {
-      const { url } = info
+      const { eachPageUrl } = info
 
       return function () {
         return new Promise(_getEachImageInfoAndDownloadPromise)
       }
 
       async function _getEachImageInfoAndDownloadPromise(resolve, reject) {
-        const res = await fetch(url, createRequestHeader())
+        const res = await fetch(eachPageUrl, createRequestHeader())
         if (!res.ok) {
           showError('getImgSrcByLink', 'api errur!')
           return reject(new Error(res.statusText))
         }
+
         const body = await res.text()
         const $ = cheerio.load(body)
         const linkObj = { ...info }
