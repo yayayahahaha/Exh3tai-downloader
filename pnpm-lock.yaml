@@ -2,12 +2,12 @@ lockfileVersion: 5.3
 
 specifiers:
   cheerio: ^1.0.0-rc.10
-  npm-flyc: ^1.0.10
+  npm-flyc: ^1.0.11
   request: ^2.83.0
 
 dependencies:
   cheerio: 1.0.0-rc.10
-  npm-flyc: 1.0.10
+  npm-flyc: 1.0.11
   request: 2.88.2
 
 packages:
@@ -301,8 +301,8 @@ packages:
     resolution: {integrity: sha1-VgiurfwAvmwpAd9fmGF4jeDVl8g=}
     dev: false
 
-  /npm-flyc/1.0.10:
-    resolution: {integrity: sha512-7/gpPjKzRidy4umKoMerjb49JAhPudmCBx5lOqwJFF2mCNdiWehR5tiFB0DlDrl1rt/N5I5nnzzkGICKcIYpUQ==}
+  /npm-flyc/1.0.11:
+    resolution: {integrity: sha512-wOQElCjFq0sxPrmFnnYHg7Alv9z4uGzPhZ1Z8VkWtt5/94KFMzwQof2KqFo+vJaiCSgmmogO5DrmJMwswxXGaA==}
     dependencies:
       axios: 0.18.1
     dev: false
