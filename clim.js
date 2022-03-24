@@ -1,7 +1,8 @@
 // TODO
-// 當task 發生 error 的時候要把那些 error 抓出來 retry
+// 1. 當task 發生 error 的時候要把那些 error 抓出來 retry
 // -> 這個功能看如果可以的話要寫進 TaskSystem 裡面?
-// 撰寫階段性的下載機制: 雖然這樣說但 p=0 之類的其實沒有什麼區別..
+// 2. 撰寫階段性的下載機制: 像是直接匯入已經進到某些頁面的網址之類的
+// 雖然這樣說但 p=0 之類的其實沒有什麼區別..
 // 再看看要用參數之類的去處理這件事情
 
 const request = require('request')
@@ -78,7 +79,7 @@ async function start() {
   fs.writeFileSync('result.json', JSON.stringify(allImageInfoList, null, 2))
 
   await startDownload(allImageInfoList)
-  console.log('完成囉!!!!')
+  stepMessage('完成囉!!!!')
 
   // TODO 遞迴檢查 getUrlInfo 的其他項目?
 }
@@ -226,11 +227,9 @@ function getUrlInfo(urlIndex, setting) {
 
   if (urlIndex >= urlList.length) return void console.log('COMPLETE >w<//')
 
-  // console.log('your cookie is: ' + jsonContent.cookie);
   stepMessage('Get Url Info')
   console.log(`current fetch url: ${currentUrl}`)
 
-  // TODO check what is this ? startPage = 1
   return new Promise(resolve =>
     request(createRequestHeader(currentUrl), function (error, _, body) {
       if (error) {
