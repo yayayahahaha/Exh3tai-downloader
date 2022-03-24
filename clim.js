@@ -7,22 +7,9 @@
 const request = require('request')
 const fs = require('fs')
 const cheerio = require('cheerio')
-const { head } = require('request')
-const { getHeapCodeStatistics } = require('v8')
-const { resolve } = require('dns')
 
 const { TaskSystem, download } = require('npm-flyc')
-const { end } = require('cheerio/lib/api/traversing')
 const defaultTaskSetting = (randomDelay = 0) => ({ randomDelay })
-
-const result = []
-const srcArray = []
-const countloaded = 0
-const originTaskIndex = 16
-const taskIndex = 16
-const linkChunkArray = []
-const chunkIndex = 0
-const chunkNumber = 10
 
 const SAVE_DIRECTORY = './saveImg'
 
@@ -115,9 +102,9 @@ async function startDownload(list) {
 
   function _create_task(list) {
     return list.map(info => {
-      const { src, sort, name, type, url, id } = info
+      const { src, sort, name, type, id } = info
       const { directory } = globalVariable.folderMap[id]
-      const filePath = `${directory}/${name}.${type}`
+      const filePath = `${directory}/${sort}-${name}.${type}`
 
       return function () {
         return download(src, filePath, {
@@ -155,10 +142,10 @@ async function getEachImageInfo(allImageLinkList) {
           request(createRequestHeader(url), function (error, response, body2) {
             if (error) {
               showError('getImgSrcByLink', 'api errur!')
-              return reject(erro)
+              return reject(error)
             }
 
-            $ = cheerio.load(body2)
+            const $ = cheerio.load(body2)
             const linkObj = { ...info }
             const imageDom = $('#img')
 
@@ -234,7 +221,7 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
 
 // 會被遞迴執行?
 function getUrlInfo(urlIndex, setting) {
-  const { cookie, urlList } = setting
+  const { urlList } = setting
   const currentUrl = urlList[urlIndex]
 
   if (urlIndex >= urlList.length) return void console.log('COMPLETE >w<//')
