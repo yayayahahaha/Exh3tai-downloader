@@ -92,7 +92,7 @@ async function start() {
 
 async function startDownload(list) {
   const taskList = _create_task(list)
-  const taskNumber = 1
+  const taskNumber = 2
   const task_search = new TaskSystem(taskList, taskNumber, defaultTaskSetting(500))
 
   let allPagesImagesArray = (await task_search.doPromise()).filter(result => result.status === 1)
@@ -173,7 +173,7 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
   const url = rowUrl.replace(/\?.*$/, '')
   const permissionList = _createEachPageImagesLinkTask(url, endPage)
 
-  const taskNumber = 1
+  const taskNumber = 2
   const task_search = new TaskSystem(permissionList, taskNumber, defaultTaskSetting())
 
   let allPagesImagesArray = (await task_search.doPromise()).filter(result => result.status === 1)
