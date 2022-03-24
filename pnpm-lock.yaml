@@ -3,12 +3,12 @@ lockfileVersion: 5.3
 specifiers:
   cheerio: ^1.0.0-rc.10
   node-fetch: ^3.2.3
-  npm-flyc: ^1.0.14
+  npm-flyc: ^1.0.15
 
 dependencies:
   cheerio: 1.0.0-rc.10
   node-fetch: 3.2.3
-  npm-flyc: 1.0.14
+  npm-flyc: 1.0.15
 
 packages:
 
@@ -158,8 +158,8 @@ packages:
       formdata-polyfill: 4.0.10
     dev: false
 
-  /npm-flyc/1.0.14:
-    resolution: {integrity: sha512-d7HLEbP0K+pl/a4J6kfwRzPwVDzvuTy5laxudVIFr8atRbhDshgmrOcAMta6HlkwPUsZQvgdI15VSofT1jXgQw==}
+  /npm-flyc/1.0.15:
+    resolution: {integrity: sha512-H4JR71PCxvjL2x5r9eKJL/arZ0XekriJdPj+2ZOIWt7g0dwWSNa7oLEIWg7Zv9i7JHNZqdmhjjhcoN/0X17kug==}
     dependencies:
       axios: 0.18.1
     dev: false
