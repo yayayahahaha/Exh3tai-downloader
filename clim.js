@@ -142,24 +142,25 @@ async function getEachImageInfo(allImageLinkList) {
       const { url } = info
 
       return function () {
-        return new Promise((resolve, reject) => {
-          request(createRequestHeader(url), function (error, response, body2) {
-            if (error) {
-              showError('getImgSrcByLink', 'api errur!')
-              return reject(error)
-            }
+        return new Promise(_getEachImageInfoPromise)
+      }
 
-            const $ = cheerio.load(body2)
-            const linkObj = { ...info }
-            const imageDom = $('#img')
+      async function _getEachImageInfoPromise(resolve, reject) {
+        const res = await fetch(url, createRequestHeader())
+        if (!res.ok) {
+          showError('getImgSrcByLink', 'api errur!')
+          return reject(new Error(res.statusText))
+        }
+        const body = await res.text()
+        const $ = cheerio.load(body)
+        const linkObj = { ...info }
+        const imageDom = $('#img')
 
-            const src = imageDom.attr('src')
-            linkObj.src = src
-            linkObj.type = src.match(/\.(\w+)$/)[1]
+        const src = imageDom.attr('src')
+        linkObj.src = src
+        linkObj.type = src.match(/\.(\w+)$/)[1]
 
-            return resolve(linkObj)
-          })
-        })
+        return resolve(linkObj)
       }
     })
   }
@@ -201,7 +202,7 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
         const res = await fetch(urlWithPage, createRequestHeader())
         if (!res.ok) {
           showError(`get ${urlWithPage}`, 'api request failed')
-          return reject(res.statusText)
+          return reject(new Error(res.statusText))
         }
 
         const body = await res.text()
