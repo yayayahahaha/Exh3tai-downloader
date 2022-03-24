@@ -25,8 +25,11 @@ const stepMessage = (content, length = 7) => {
 }
 const getEndPage = $ => {
   const pagerSelector = 'table.ptt td'
-  const pager = $(pagerSelector)
-  return parseInt($(pager[pager.length - 2]).text(), 10)
+  const pagers = $(pagerSelector)
+  const lastPageIndex = pagers.length - 2
+  const totalPage = $(pagers[lastPageIndex]).text()
+
+  return parseInt(totalPage, 10)
 }
 const createRequestHeader = url => ({
   url,
