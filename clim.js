@@ -78,43 +78,17 @@ async function start() {
   const [allImageLinkList, eachPageError] = await getEachPageImagesLink({ url, endPage, id })
   if (eachPageError) return // TODO error check
 
-  const [allImageInfoList, imageInfoError] = await getEachImageInfo(allImageLinkList)
+  fs.writeFileSync('allImageLinkList.json', JSON.stringify(allImageLinkList, null, 2))
+
+  const [, imageInfoError] = await getEachImageInfoAndDownload(allImageLinkList)
   if (imageInfoError) return // TODO error check
 
-  fs.writeFileSync('result.json', JSON.stringify(allImageInfoList, null, 2))
-
-  await startDownload(allImageInfoList)
   stepMessage('完成囉!!!!')
 
   // TODO 遞迴檢查 getUrlInfo 的其他項目?
 }
 
-async function startDownload(list) {
-  const taskList = _create_task(list)
-  const taskNumber = 2
-  const task_search = new TaskSystem(taskList, taskNumber, defaultTaskSetting(500))
-
-  let allPagesImagesArray = (await task_search.doPromise()).filter(result => result.status === 1)
-  allPagesImagesArray = allPagesImagesArray.map(({ data }) => data)
-
-  return [allPagesImagesArray, null]
-
-  function _create_task(list) {
-    return list.map(info => {
-      const { src, sort, name, type, id } = info
-      const { directory } = globalVariable.folderMap[id]
-      const filePath = `${directory}/${sort}-${name}.${type}`
-
-      return function () {
-        return download(src, filePath, {
-          headers: { Cookie: globalVariable.cookie }
-        })
-      }
-    })
-  }
-}
-
-async function getEachImageInfo(allImageLinkList) {
+async function getEachImageInfoAndDownload(allImageLinkList) {
   const taskList = _create_task(allImageLinkList)
 
   const taskNumber = 2
@@ -130,10 +104,10 @@ async function getEachImageInfo(allImageLinkList) {
       const { url } = info
 
       return function () {
-        return new Promise(_getEachImageInfoPromise)
+        return new Promise(_getEachImageInfoAndDownloadPromise)
       }
 
-      async function _getEachImageInfoPromise(resolve, reject) {
+      async function _getEachImageInfoAndDownloadPromise(resolve, reject) {
         const res = await fetch(url, createRequestHeader())
         if (!res.ok) {
           showError('getImgSrcByLink', 'api errur!')
@@ -148,7 +122,13 @@ async function getEachImageInfo(allImageLinkList) {
         linkObj.src = src
         linkObj.type = src.match(/\.(\w+)$/)[1]
 
-        return resolve(linkObj)
+        // 直接下載圖片
+        const { sort, name, type, id } = linkObj
+        const { directory } = globalVariable.folderMap[id]
+        const filePath = `${directory}/${sort}-${name}.${type}`
+        download(src, filePath, { headers: { Cookie: globalVariable.cookie } })
+          .then(resolve)
+          .catch(reject)
       }
     })
   }
