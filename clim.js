@@ -92,13 +92,10 @@ async function start() {
       return resolve()
     }
   })
-  const taskNumber = globalVariable.taskNumber
-  const taskAll = new TaskSystem(urlListTask, taskNumber, defaultTaskSetting(500))
+  const taskAll = new TaskSystem(urlListTask, 1, defaultTaskSetting(500))
   await taskAll.doPromise()
 
   stepMessage('全部完成囉!!!!')
-
-  // TODO 遞迴檢查 getUrlInfo 的其他項目?
 }
 
 async function getEachImageInfoAndDownload(allImageLinkList) {
