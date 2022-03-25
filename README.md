@@ -45,7 +45,7 @@ pnpm install
 }
 ```
 
-10. ⚠️ if you want get multiple lovely gallery once, paste it like this: ⚠️
+10. if you want get multiple lovely gallery once, paste it like this:
 
 ```
 {
@@ -58,7 +58,7 @@ pnpm install
 }
 ```
 
-> ⚠️ Warning: this feature is in maintenance, we'll be back soon ⚠️
+the download will start one by one, please be patient ☕️
 
 > remember the `"` before and after url, and don't forget `,` between each url, and also don't forget`[]` before and after them
 
