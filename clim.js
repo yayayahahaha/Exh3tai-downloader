@@ -16,6 +16,7 @@ const defaultTaskSetting = (randomDelay = 0, retry = true) => ({ randomDelay, re
 
 const SAVE_DIRECTORY = './saveImg'
 
+const handlePromise = promise => promise.then(r => [r, null]).catch(e => [null, e])
 const getId = url => url.match(/\/\/exhentai.org\/([^?]*)?/)[1].replace(/\//g, '-')
 const showError = (where, content) => console.error(`[${where}] ${content}`)
 const stepMessage = (content, length = 7) => {
@@ -110,10 +111,10 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
       }
 
       async function _getEachImageInfoAndDownloadPromise(resolve, reject) {
-        const res = await fetch(eachPageUrl, createRequestHeader())
-        if (!res.ok) {
+        const [res, error] = await handlePromise(fetch(eachPageUrl, createRequestHeader()))
+        if (error) {
           showError('getImgSrcByLink', 'api errur!')
-          return reject(new Error(res.statusText))
+          return reject(error)
         }
 
         const body = await res.text()
@@ -161,10 +162,10 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
       }
 
       async function _eachPageLinkPromise(resolve, reject) {
-        const res = await fetch(urlWithPage, createRequestHeader())
-        if (!res.ok) {
+        const [res, error] = await handlePromise(fetch(urlWithPage, createRequestHeader()))
+        if (error) {
           showError(`get ${urlWithPage}`, 'api request failed')
-          return reject(new Error(res.statusText))
+          return reject(error)
         }
 
         const body = await res.text()
@@ -188,7 +189,7 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
 }
 
 // 會被遞迴執行?
-function getUrlInfo(urlIndex, setting) {
+async function getUrlInfo(urlIndex, setting) {
   const { urlList } = setting
   const currentUrl = urlList[urlIndex]
 
@@ -197,34 +198,33 @@ function getUrlInfo(urlIndex, setting) {
   stepMessage('Get Url Info')
   console.log(`current fetch url: ${currentUrl}`)
 
-  return new Promise(_getUrlInfoPromise)
-
-  async function _getUrlInfoPromise(resolve) {
-    const res = await fetch(currentUrl, createRequestHeader())
-    if (!res.ok) {
-      showError('getUrlInfo', 'get url basic info failed!')
-      return resolve([null, new Error(res.statusText)])
-    }
-    const body = await res.text()
-    const $ = cheerio.load(body)
-
-    const endPage = getEndPage($)
-    if (isNaN(endPage)) return void showError('endPage', 'endPage is not a number')
-
-    const title = $('title').text().trim().replace(/ /g, '_')
-    const directory = SAVE_DIRECTORY + '/' + title.replace(/\W/g, '_')
-    const id = getId(currentUrl)
-    globalVariable.folderMap[id] = { directory, endPage, id, title, url: currentUrl }
-
-    if (!fs.existsSync(directory)) fs.mkdirSync(directory)
-
-    console.log('get url info success')
-    console.log("gallery's title: " + title)
-    console.log(`total page: ${endPage}`)
-    console.log(`save in directory: ${directory}`)
-
-    return resolve([{ endPage, directory, id, title, url: currentUrl }, null])
+  const [res, error] = await handlePromise(fetch(currentUrl, createRequestHeader()))
+  if (error) {
+    showError('getUrlInfo', 'get url basic info failed!')
+    return [null, error]
   }
+  const body = await res.text()
+  const $ = cheerio.load(body)
+
+  const endPage = getEndPage($)
+  if (isNaN(endPage)) {
+    showError('endPage', 'endPage is not a number')
+    return [null, new Error('endPage is not a number')]
+  }
+
+  const title = $('title').text().trim().replace(/ /g, '_')
+  const directory = SAVE_DIRECTORY + '/' + title.replace(/\W/g, '_')
+  const id = getId(currentUrl)
+  globalVariable.folderMap[id] = { directory, endPage, id, title, url: currentUrl }
+
+  if (!fs.existsSync(directory)) fs.mkdirSync(directory)
+
+  console.log('get url info success')
+  console.log("gallery's title: " + title)
+  console.log(`total page: ${endPage}`)
+  console.log(`save in directory: ${directory}`)
+
+  return [{ endPage, directory, id, title, url: currentUrl }, null]
 }
 
 console.reset = process.stdout.write('\0') // process.stdout.write('\033c')
