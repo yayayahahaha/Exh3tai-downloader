@@ -229,5 +229,3 @@ async function getUrlInfo(url) {
 
   return [{ endPage, directory, id, title, url }, null]
 }
-
-console.reset = process.stdout.write('\0') // process.stdout.write('\033c')
