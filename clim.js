@@ -4,8 +4,7 @@
 // 2. 撰寫階段性的下載機制: 像是直接匯入已經進到某些頁面的網址之類的
 // 雖然這樣說但 p=0 之類的其實沒有什麼區別..
 // 再看看要用參數之類的去處理這件事情
-// 3. 避免使用 request, 他已經被拋棄了, 要注意也要有 request 的 headers 功能
-// 4. 避免使用cheerio ? 但好像也沒差的感覺
+// 3. 避免使用cheerio ? 但好像也沒差的感覺
 
 import fetch from 'node-fetch'
 import fs from 'fs'
@@ -39,6 +38,7 @@ const createRequestHeader = url => ({
 })
 const globalVariable = {
   cookie: '',
+  taskNumber: 2,
   folderMap: {}
 }
 
@@ -94,7 +94,7 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
 
   const taskList = _create_task(allImageLinkList)
 
-  const taskNumber = 2
+  const taskNumber = globalVariable.taskNumber
   const task_search = new TaskSystem(taskList, taskNumber, defaultTaskSetting(500))
 
   let allPagesImagesArray = (await task_search.doPromise()).filter(result => result.status === 1)
@@ -143,7 +143,7 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
   const url = rowUrl.replace(/\?.*$/, '')
   const permissionList = _createEachPageImagesLinkTask(url, endPage)
 
-  const taskNumber = 2
+  const taskNumber = globalVariable.taskNumber
   const task_search = new TaskSystem(permissionList, taskNumber, defaultTaskSetting())
 
   let allPagesImagesArray = (await task_search.doPromise()).filter(result => result.status === 1)
