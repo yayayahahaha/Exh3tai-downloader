@@ -72,21 +72,31 @@ async function start() {
 
   console.log('Load setting.json success')
 
-  const currentUrlIndex = 0
+  const urlListTask = urlList.map(settingUrl => () => {
+    return new Promise(_promise_callback)
 
-  const [response, getUrlError] = await getUrlInfo(urlList[currentUrlIndex])
-  if (getUrlError) return // TODO error check
+    async function _promise_callback(resolve, reject) {
+      const [response, getUrlError] = await getUrlInfo(settingUrl)
+      if (getUrlError) return reject(getUrlError)
 
-  const { url, endPage, id } = response
-  const [allImageLinkList, eachPageError] = await getEachPageImagesLink({ url, endPage, id })
-  if (eachPageError) return // TODO error check
+      const { url, endPage, id } = response
+      const [allImageLinkList, eachPageError] = await getEachPageImagesLink({ url, endPage, id })
+      if (eachPageError) return reject(eachPageError)
 
-  fs.writeFileSync('allImageLinkList.json', JSON.stringify(allImageLinkList, null, 2))
+      fs.writeFileSync('allImageLinkList.json', JSON.stringify(allImageLinkList, null, 2))
 
-  const [, imageInfoError] = await getEachImageInfoAndDownload(allImageLinkList)
-  if (imageInfoError) return // TODO error check
+      const [, imageInfoError] = await getEachImageInfoAndDownload(allImageLinkList)
+      if (imageInfoError) return reject(imageInfoError)
 
-  stepMessage('完成囉!!!!')
+      stepMessage(`url ${settingUrl} 完成囉!`)
+      return resolve()
+    }
+  })
+  const taskNumber = globalVariable.taskNumber
+  const taskAll = new TaskSystem(urlListTask, taskNumber, defaultTaskSetting(500))
+  await taskAll.doPromise()
+
+  stepMessage('全部完成囉!!!!')
 
   // TODO 遞迴檢查 getUrlInfo 的其他項目?
 }
@@ -190,7 +200,6 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
   }
 }
 
-// 會被遞迴執行?
 async function getUrlInfo(url) {
   stepMessage('Get Url Info')
   console.log(`current fetch url: ${url}`)
