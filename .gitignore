@@ -7,3 +7,4 @@ result.json
 *.jpeg
 *.json
 saveImg/
+.DS_Store
