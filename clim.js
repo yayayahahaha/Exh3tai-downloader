@@ -72,7 +72,9 @@ async function start() {
 
   console.log('Load setting.json success')
 
-  const [response, getUrlError] = await getUrlInfo(0, { cookie, urlList })
+  const currentUrlIndex = 0
+
+  const [response, getUrlError] = await getUrlInfo(urlList[currentUrlIndex])
   if (getUrlError) return // TODO error check
 
   const { url, endPage, id } = response
@@ -189,16 +191,11 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
 }
 
 // 會被遞迴執行?
-async function getUrlInfo(urlIndex, setting) {
-  const { urlList } = setting
-  const currentUrl = urlList[urlIndex]
-
-  if (urlIndex >= urlList.length) return void console.log('COMPLETE >w<//')
-
+async function getUrlInfo(url) {
   stepMessage('Get Url Info')
-  console.log(`current fetch url: ${currentUrl}`)
+  console.log(`current fetch url: ${url}`)
 
-  const [res, error] = await handlePromise(fetch(currentUrl, createRequestHeader()))
+  const [res, error] = await handlePromise(fetch(url, createRequestHeader()))
   if (error) {
     showError('getUrlInfo', 'get url basic info failed!')
     return [null, error]
@@ -214,8 +211,8 @@ async function getUrlInfo(urlIndex, setting) {
 
   const title = $('title').text().trim().replace(/ /g, '_')
   const directory = SAVE_DIRECTORY + '/' + title.replace(/\W/g, '_')
-  const id = getId(currentUrl)
-  globalVariable.folderMap[id] = { directory, endPage, id, title, url: currentUrl }
+  const id = getId(url)
+  globalVariable.folderMap[id] = { directory, endPage, id, title, url }
 
   if (!fs.existsSync(directory)) fs.mkdirSync(directory)
 
@@ -224,7 +221,7 @@ async function getUrlInfo(urlIndex, setting) {
   console.log(`total page: ${endPage}`)
   console.log(`save in directory: ${directory}`)
 
-  return [{ endPage, directory, id, title, url: currentUrl }, null]
+  return [{ endPage, directory, id, title, url }, null]
 }
 
 console.reset = process.stdout.write('\0') // process.stdout.write('\033c')
