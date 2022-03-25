@@ -89,6 +89,7 @@ async function start() {
       if (imageInfoError) return reject(imageInfoError)
 
       stepMessage(`url ${settingUrl} 完成囉!`)
+      console.log()
       return resolve()
     }
   })
@@ -215,8 +216,12 @@ async function getUrlInfo(url) {
     return [null, new Error('endPage is not a number')]
   }
 
-  const title = $('title').text().trim().replace(/ /g, '_')
-  const directory = SAVE_DIRECTORY + '/' + title.replace(/\W/g, '_')
+  const illegalCharRegex = /[^\u4e00-\u9fa5_a-zA-Z0-9]+/g
+  const title = $('title')
+    .text()
+    .replace(illegalCharRegex, '_')
+    .replace(/^_|_ExHentai_org$/g, '')
+  const directory = SAVE_DIRECTORY + '/' + title
   const id = getId(url)
   globalVariable.folderMap[id] = { directory, endPage, id, title, url }
 
