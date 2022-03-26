@@ -10,6 +10,6 @@
   "dependencies": {
     "cheerio": "^1.0.0-rc.10",
     "node-fetch": "^3.2.3",
-    "npm-flyc": "^1.0.16"
+    "npm-flyc": "^1.0.17"
   }
 }
