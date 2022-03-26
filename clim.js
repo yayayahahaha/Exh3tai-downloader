@@ -64,10 +64,11 @@ async function start() {
   stepMessage('Load setting.json')
   const jsonContent = readSettingInfo()
 
-  const { cookie, url: urlList } = jsonContent
-  if (!cookie || !urlList) return void showError('Parse setting.json', 'attribute missing!')
+  const { cookie, url: urlList, taskNumber } = jsonContent
+  if (!cookie || !urlList || isNaN(taskNumber)) return void showError('Parse setting.json', 'params error!')
 
   globalVariable.cookie = cookie
+  globalVariable.taskNumber = taskNumber
 
   console.log('Load setting.json success')
 
