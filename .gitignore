@@ -1,6 +1,4 @@
-setting.json
 /node_modules
-result.json
 *.jpg
 *.png
 *.gif
@@ -8,3 +6,4 @@ result.json
 *.json
 saveImg/
 .DS_Store
+/cached

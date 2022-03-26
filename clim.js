@@ -13,6 +13,7 @@ import { TaskSystem, download } from 'npm-flyc'
 const defaultTaskSetting = (randomDelay = 0, retry = true) => ({ randomDelay, retry })
 
 const SAVE_DIRECTORY = './saveImg'
+const CACHE_DIRECTORY = './cached'
 
 const handlePromise = promise => promise.then(r => [r, null]).catch(e => [null, e])
 const getId = url => url.match(/\/\/exhentai.org\/([^?]*)?/)[1].replace(/\//g, '-')
@@ -43,6 +44,7 @@ const globalVariable = {
 
 console.log("Let's Go!")
 if (!fs.existsSync(SAVE_DIRECTORY)) fs.mkdirSync(SAVE_DIRECTORY)
+if (!fs.existsSync(CACHE_DIRECTORY)) fs.mkdirSync(CACHE_DIRECTORY)
 
 start()
 
@@ -83,7 +85,7 @@ async function start() {
       const [allImageLinkList, eachPageError] = await getEachPageImagesLink({ url, endPage, id })
       if (eachPageError) return reject(eachPageError)
 
-      fs.writeFileSync('allImageLinkList.json', JSON.stringify(allImageLinkList, null, 2))
+      fs.writeFileSync(`${CACHE_DIRECTORY}/${id}.json`, JSON.stringify(allImageLinkList, null, 2))
 
       const [, imageInfoError] = await getEachImageInfoAndDownload(allImageLinkList)
       if (imageInfoError) return reject(imageInfoError)
@@ -160,6 +162,7 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
   allPagesImagesArray = allPagesImagesArray
     .map(({ data }) => data)
     .reduce((list, pageInfo) => list.concat(pageInfo), [])
+    .sort((a, b) => a.sort - b.sort)
 
   return [allPagesImagesArray, null]
 
