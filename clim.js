@@ -3,7 +3,6 @@
 // 雖然這樣說但 p=0 之類的其實沒有什麼區別..
 // 再看看要用參數之類的去處理這件事情, 或是做檔案存在與否的檢查之類的
 // 2. 避免使用cheerio ? 但好像也沒差的感覺
-// 3. 把 taskNumber 也納入 setting.json 的設定裡
 
 import fetch from 'node-fetch'
 import fs from 'fs'
