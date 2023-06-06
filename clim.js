@@ -2,7 +2,7 @@
 // 1. 撰寫階段性的下載機制: 像是直接匯入已經進到某些頁面的網址之類的
 // 雖然這樣說但 p=0 之類的其實沒有什麼區別..
 // 再看看要用參數之類的去處理這件事情, 或是做檔案存在與否的檢查之類的
-// 2. 避免使用cheerio ? 但好像也沒差的感覺
+// 2. 做 url 的 "某個" 圖片後面的數目不會下載，用於過濾角色圖片和背景等
 
 import fetch from 'node-fetch'
 import fs from 'fs'
@@ -14,15 +14,15 @@ const defaultTaskSetting = (randomDelay = 0, retry = true) => ({ randomDelay, re
 const SAVE_DIRECTORY = './saveImg'
 const CACHE_DIRECTORY = './cached'
 
-const handlePromise = promise => promise.then(r => [r, null]).catch(e => [null, e])
-const getId = url => url.match(/\/\/exhentai.org\/([^?]*)?/)[1].replace(/\//g, '-')
+const handlePromise = (promise) => promise.then((r) => [r, null]).catch((e) => [null, e])
+const getId = (url) => url.match(/\/\/exhentai.org\/([^?]*)?/)[1].replace(/\//g, '-')
 const showError = (where, content) => console.error(`[${where}] ${content}`)
 const stepMessage = (content, length = 7) => {
   const headTail = Array(length).fill('=').join('')
   console.log()
   console.log(`${headTail} ${content} ${headTail}`)
 }
-const getEndPage = $ => {
+const getEndPage = ($) => {
   const pagerSelector = 'table.ptt td'
   const pagers = $(pagerSelector)
   const lastPageIndex = pagers.length - 2
@@ -30,15 +30,15 @@ const getEndPage = $ => {
 
   return parseInt(totalPage, 10)
 }
-const createRequestHeader = url => ({
+const createRequestHeader = (url) => ({
   url,
   headers: { Cookie: globalVariable.cookie },
-  jar: url ? true : undefined
+  jar: url ? true : undefined,
 })
 const globalVariable = {
   cookie: '',
   taskNumber: 2,
-  folderMap: {}
+  folderMap: {},
 }
 
 console.log("Let's Go!")
@@ -73,7 +73,7 @@ async function start() {
 
   console.log('Load setting.json success')
 
-  const urlListTask = urlList.map(settingUrl => () => {
+  const urlListTask = urlList.map((settingUrl) => () => {
     return new Promise(_promise_callback)
 
     async function _promise_callback(resolve, reject) {
@@ -108,13 +108,13 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
   const taskNumber = globalVariable.taskNumber
   const task_search = new TaskSystem(taskList, taskNumber, defaultTaskSetting(500))
 
-  let allPagesImagesArray = (await task_search.doPromise()).filter(result => result.status === 1)
+  let allPagesImagesArray = (await task_search.doPromise()).filter((result) => result.status === 1)
   allPagesImagesArray = allPagesImagesArray.map(({ data }) => data)
 
   return [allPagesImagesArray, null]
 
   function _create_task(list) {
-    return list.map(info => {
+    return list.map((info) => {
       const { eachPageUrl } = info
 
       return function () {
@@ -135,6 +135,10 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
 
         const src = imageDom.attr('src')
         linkObj.src = src
+        if (src == null) {
+          console.log('[ERROR] src is not exist!', JSON.stringify(info, null, 2))
+          return reject()
+        }
         linkObj.type = src.match(/\.(\w+)$/)[1]
 
         // 直接下載圖片
@@ -157,7 +161,7 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
   const taskNumber = globalVariable.taskNumber
   const task_search = new TaskSystem(permissionList, taskNumber, defaultTaskSetting())
 
-  let allPagesImagesArray = (await task_search.doPromise()).filter(result => result.status === 1)
+  let allPagesImagesArray = (await task_search.doPromise()).filter((result) => result.status === 1)
   allPagesImagesArray = allPagesImagesArray
     .map(({ data }) => data)
     .reduce((list, pageInfo) => list.concat(pageInfo), [])
@@ -190,7 +194,7 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
             url: url,
             eachPageUrl: href,
             name: href.split('/')[5],
-            sort: 40 * page + index + 1
+            sort: 40 * page + index + 1,
           }
         })
 
