@@ -9,6 +9,7 @@ import fs from 'fs'
 import cheerio from 'cheerio'
 import { TaskSystem, download } from 'npm-flyc'
 import crypto from 'crypto'
+import path from 'path'
 
 const defaultTaskSetting = (randomDelay = 0, retry = true) => ({ randomDelay, retry })
 
@@ -117,42 +118,67 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
   return [allPagesImagesArray, null]
 
   function _create_task(list) {
-    return list.map((info) => {
-      const { eachPageUrl } = info
-
-      return function () {
-        return new Promise(_getEachImageInfoAndDownloadPromise)
-      }
-
-      async function _getEachImageInfoAndDownloadPromise(resolve, reject) {
-        const [res, error] = await handlePromise(fetch(eachPageUrl, createRequestHeader()))
-        if (error) {
-          showError('getImgSrcByLink', 'api errur!')
-          return reject(error)
-        }
-
-        const body = await res.text()
-        const $ = cheerio.load(body)
-        const linkObj = { ...info }
-        const imageDom = $('#img')
-
-        const src = imageDom.attr('src')
-        linkObj.src = src
-        if (src == null) {
-          console.log('[ERROR] src is not exist!', JSON.stringify(info, null, 2))
-          return reject()
-        }
-        linkObj.type = src.match(/\.(\w+)$/)[1]
-
-        // 直接下載圖片
-        const { sort, name, type, id } = linkObj
+    return list
+      .map((info) => {
+        const { eachPageUrl, hash, sort, name, id, extension } = info
         const { directory } = globalVariable.folderMap[id]
-        const filePath = `${directory}/${sort}-${name}.${type}`
-        download(src, filePath, { headers: { Cookie: globalVariable.cookie } })
-          .then(resolve)
-          .catch(reject)
-      }
-    })
+        const filePath = path.resolve(`${directory}/${sort}-${name}.${extension}`)
+
+        const relativeRawPath = `${RAW_IMAGES_DIRETORY}/${hash}`
+        const rawPath = path.resolve(relativeRawPath)
+        if (fs.existsSync(rawPath)) {
+          if (fs.existsSync(filePath)) return null
+
+          fs.symlink(rawPath, filePath, 'file', (error) => {
+            if (error) {
+              console.log('create link error', rawPath, filePath)
+              console.log(error)
+              return () => Promise.reject(error)
+            } else return null
+          })
+        }
+
+        return function () {
+          return new Promise(_getEachImageInfoAndDownloadPromise)
+        }
+
+        async function _getEachImageInfoAndDownloadPromise(resolve, reject) {
+          if (fs.existsSync(filePath)) return resolve()
+
+          const [res, error] = await handlePromise(fetch(eachPageUrl, createRequestHeader()))
+          if (error) {
+            showError('getImgSrcByLink', 'api errur!')
+            return reject(error)
+          }
+
+          const body = await res.text()
+          const $ = cheerio.load(body)
+          const imageDom = $('#img')
+
+          const src = imageDom.attr('src')
+          if (src == null) {
+            console.log('[ERROR] src is not exist!', JSON.stringify(info, null, 2))
+            return reject()
+          }
+
+          // 下載圖片到 raw-images, 然後再 link
+          download(src, relativeRawPath, { headers: { Cookie: globalVariable.cookie } })
+            .then(() => {
+              fs.symlink(rawPath, filePath, 'file', (error) => {
+                if (error) {
+                  console.log('create link error', rawPath, filePath)
+                  console.log(error)
+                  reject(error)
+                } else resolve()
+              })
+              return resolve()
+            })
+            .catch((error) => {
+              reject(error)
+            })
+        }
+      })
+      .filter(Boolean)
   }
 }
 
@@ -194,16 +220,21 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
         const list = $('.gdtm a')
         const linkArray = [...list].map((item, index) => {
           const href = $(item).attr('href')
+          const imageTitle = $(item).find('img').attr('title')
+          const extension = imageTitle.match(/\.(\w+)$/)[1]
 
           return {
             id,
             url: url,
-            hash: hashMe(href),
+            hash: `${hashMe(imageTitle)}.${extension}`,
+            extension,
             eachPageUrl: href,
             name: href.split('/')[5],
             sort: 40 * page + index + 1,
           }
         })
+
+        const image = $('.gdtm a')
 
         return resolve(linkArray)
       }
