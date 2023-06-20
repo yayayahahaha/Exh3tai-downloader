@@ -3,7 +3,6 @@
 // 雖然這樣說但 p=0 之類的其實沒有什麼區別..
 // 再看看要用參數之類的去處理這件事情, 或是做檔案存在與否的檢查之類的
 // 2. 做 url 的 "某個" 圖片後面的數目不會下載，用於過濾角色圖片和背景等
-// 3. 雖然已經有 exist 的 cache 機制，不過如果是中斷的話，應該是圖片存在、但其實是壞掉的那種? 這樣好像也很糟
 
 import fetch from 'node-fetch'
 import fs from 'fs'
@@ -72,8 +71,8 @@ async function start() {
       const [response, getUrlError] = await getUrlInfo(settingUrl)
       if (getUrlError) return reject(getUrlError)
 
-      const { url, endPage, id } = response
-      const [allImageLinkList, eachPageError] = await getEachPageImagesLink({ url, endPage, id })
+      const { url, endPage, id, parent } = response
+      const [allImageLinkList, eachPageError] = await getEachPageImagesLink({ url, endPage, id, parent })
       if (eachPageError) return reject(eachPageError)
 
       const [, imageInfoError] = await getEachImageInfoAndDownload(allImageLinkList)
@@ -121,8 +120,9 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
   function _create_task(list) {
     return list
       .map((info) => {
-        const { eachPageUrl, hash, sort, name, id, extension } = info
-        const { directory } = globalVariable.folderMap[id]
+        const { eachPageUrl, hash, sort, name, id, extension, parent } = info
+        const { directory } = globalVariable.folderMap[`${id}-${parent}`]
+
         const filePath = path.resolve(`${directory}/${sort}-${name}.${extension}`)
 
         const relativeRawPath = `${RAW_IMAGES_DIRETORY}/${hash}`
@@ -185,7 +185,7 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
   }
 }
 
-async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
+async function getEachPageImagesLink({ endPage, url: rowUrl, id, parent }) {
   stepMessage('getEachPageImagesLink')
   const { origin, pathname } = new URL(rowUrl)
   const url = `${origin}${pathname}`
@@ -204,7 +204,8 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
   return [allPagesImagesArray, null]
 
   function _createEachPageImagesLinkTask(url, endPage) {
-    return [...Array(endPage)].map((_, page) => {
+    // TODO(flyc): testing codes
+    return [...Array(1 || endPage)].map((_, page) => {
       const urlWithPage = `${url}?p=${page}`
 
       return function () {
@@ -228,6 +229,7 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
 
           return {
             id,
+            parent,
             url: url,
             hash: `${hashMe(imageTitle)}.${extension}`,
             extension,
@@ -257,6 +259,8 @@ async function getUrlInfo(url) {
   const body = await res.text()
   const $ = cheerio.load(body)
 
+  const parent = $($('#gdd table tr')[1]).find('a').text()
+
   const endPage = getEndPage($)
   if (isNaN(endPage)) {
     showError('endPage', 'endPage is not a number')
@@ -268,9 +272,9 @@ async function getUrlInfo(url) {
     .text()
     .replace(illegalCharRegex, '_')
     .replace(/^_|_ExHentai_org$/g, '')
-  const directory = SAVE_DIRECTORY + '/' + title
+  const directory = `${SAVE_DIRECTORY}/${title}-${parent}`
   const id = getId(url)
-  globalVariable.folderMap[id] = { directory, endPage, id, title, url }
+  globalVariable.folderMap[`${id}-${parent}`] = { directory, endPage, id, title, url, parent }
 
   if (!fs.existsSync(directory)) fs.mkdirSync(directory)
 
@@ -279,5 +283,5 @@ async function getUrlInfo(url) {
   console.log(`total page: ${endPage}`)
   console.log(`save in directory: ${directory}`)
 
-  return [{ endPage, directory, id, title, url }, null]
+  return [{ endPage, directory, id, title, url, parent }, null]
 }
