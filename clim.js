@@ -8,11 +8,12 @@ import fetch from 'node-fetch'
 import fs from 'fs'
 import cheerio from 'cheerio'
 import { TaskSystem, download } from 'npm-flyc'
+import crypto from 'crypto'
 
 const defaultTaskSetting = (randomDelay = 0, retry = true) => ({ randomDelay, retry })
 
 const SAVE_DIRECTORY = './saveImg'
-const CACHE_DIRECTORY = './cached'
+const RAW_IMAGES_DIRETORY = './raw-images'
 
 const handlePromise = (promise) => promise.then((r) => [r, null]).catch((e) => [null, e])
 const getId = (url) => url.match(/\/\/exhentai.org\/([^?]*)?/)[1].replace(/\//g, '-')
@@ -35,6 +36,9 @@ const createRequestHeader = (url) => ({
   headers: { Cookie: globalVariable.cookie },
   jar: url ? true : undefined,
 })
+
+const hashMe = (input) => crypto.createHash('sha256').update(input, 'utf8').digest('hex')
+
 const globalVariable = {
   cookie: '',
   taskNumber: 2,
@@ -43,7 +47,7 @@ const globalVariable = {
 
 console.log("Let's Go!")
 if (!fs.existsSync(SAVE_DIRECTORY)) fs.mkdirSync(SAVE_DIRECTORY)
-if (!fs.existsSync(CACHE_DIRECTORY)) fs.mkdirSync(CACHE_DIRECTORY)
+if (!fs.existsSync(RAW_IMAGES_DIRETORY)) fs.mkdirSync(RAW_IMAGES_DIRETORY)
 
 start()
 
@@ -69,8 +73,6 @@ async function start() {
       const { url, endPage, id } = response
       const [allImageLinkList, eachPageError] = await getEachPageImagesLink({ url, endPage, id })
       if (eachPageError) return reject(eachPageError)
-
-      fs.writeFileSync(`${CACHE_DIRECTORY}/${id}.json`, JSON.stringify(allImageLinkList, null, 2))
 
       const [, imageInfoError] = await getEachImageInfoAndDownload(allImageLinkList)
       if (imageInfoError) return reject(imageInfoError)
@@ -192,9 +194,11 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
         const list = $('.gdtm a')
         const linkArray = [...list].map((item, index) => {
           const href = $(item).attr('href')
+
           return {
             id,
             url: url,
+            hash: hashMe(href),
             eachPageUrl: href,
             name: href.split('/')[5],
             sort: 40 * page + index + 1,
