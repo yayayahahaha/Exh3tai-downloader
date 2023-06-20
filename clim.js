@@ -204,8 +204,7 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id, parent }) {
   return [allPagesImagesArray, null]
 
   function _createEachPageImagesLinkTask(url, endPage) {
-    // TODO(flyc): testing codes
-    return [...Array(1 || endPage)].map((_, page) => {
+    return [...Array(endPage)].map((_, page) => {
       const urlWithPage = `${url}?p=${page}`
 
       return function () {
@@ -259,7 +258,7 @@ async function getUrlInfo(url) {
   const body = await res.text()
   const $ = cheerio.load(body)
 
-  const parent = $($('#gdd table tr')[1]).find('a').text()
+  const parent = $($('#gdd table tr')[1]).find('td.gdt2').text()
 
   const endPage = getEndPage($)
   if (isNaN(endPage)) {
