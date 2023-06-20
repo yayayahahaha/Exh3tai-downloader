@@ -47,20 +47,6 @@ if (!fs.existsSync(CACHE_DIRECTORY)) fs.mkdirSync(CACHE_DIRECTORY)
 
 start()
 
-function readSettingInfo() {
-  const content = fs.readFileSync('setting.json')
-  let jsonContent = null
-
-  try {
-    jsonContent = JSON.parse(content)
-  } catch (e) {
-    showError('Parse setting.json', 'JSON.parse failed!')
-    jsonContent = {}
-  }
-
-  return jsonContent
-}
-
 async function start() {
   stepMessage('Load setting.json')
   const jsonContent = readSettingInfo()
@@ -94,10 +80,25 @@ async function start() {
       return resolve()
     }
   })
+
   const taskAll = new TaskSystem(urlListTask, 1, defaultTaskSetting(500))
   await taskAll.doPromise()
 
   stepMessage('全部完成囉!!!!')
+}
+
+function readSettingInfo() {
+  const content = fs.readFileSync('setting.json')
+  let jsonContent = null
+
+  try {
+    jsonContent = JSON.parse(content)
+  } catch (e) {
+    showError('Parse setting.json', 'JSON.parse failed!')
+    jsonContent = {}
+  }
+
+  return jsonContent
 }
 
 async function getEachImageInfoAndDownload(allImageLinkList) {
@@ -155,7 +156,9 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
 
 async function getEachPageImagesLink({ endPage, url: rowUrl, id }) {
   stepMessage('getEachPageImagesLink')
-  const url = rowUrl.replace(/\?.*$/, '')
+  const { origin, pathname } = new URL(rowUrl)
+  const url = `${origin}${pathname}`
+
   const permissionList = _createEachPageImagesLinkTask(url, endPage)
 
   const taskNumber = globalVariable.taskNumber
