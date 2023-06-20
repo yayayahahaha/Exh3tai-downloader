@@ -163,8 +163,10 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
           }
 
           // 下載圖片到 raw-images, 然後再 link
-          download(src, relativeRawPath, { headers: { Cookie: globalVariable.cookie } })
+          download(src, `${relativeRawPath}-preparing`, { headers: { Cookie: globalVariable.cookie } })
             .then(() => {
+              fs.renameSync(`${relativeRawPath}-preparing`, relativeRawPath)
+
               fs.symlink(rawPath, filePath, 'file', (error) => {
                 if (error) {
                   console.log('create link error', rawPath, filePath)
