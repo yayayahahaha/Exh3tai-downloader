@@ -62,7 +62,7 @@ async function start() {
   stepMessage('Load setting.json')
   const jsonContent = readSettingInfo()
 
-  const { cookie, url: urlList, taskNumber } = jsonContent
+  const { cookie, url: urlList, taskNumber = 4, workerCount = 1 } = jsonContent
   if (!cookie || !urlList || isNaN(taskNumber)) return void showError('Parse setting.json', 'params error!')
 
   globalVariable.cookie = cookie
@@ -90,7 +90,7 @@ async function start() {
     }
   })
 
-  const taskAll = new TaskSystem(urlListTask, 1, defaultTaskSetting(500))
+  const taskAll = new TaskSystem(urlListTask, workerCount, defaultTaskSetting(500))
   await taskAll.doPromise()
 
   stepMessage('全部完成囉!!!!')
