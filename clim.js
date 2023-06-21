@@ -229,14 +229,16 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id, parent }) {
           const imageTitle = $(item).find('img').attr('title')
           const extension = imageTitle.match(/\.(\w+)$/)[1]
 
+          const hashPrefix = href.split('/')[4]
+
           return {
             id,
             parent,
             url: url,
-            hash: `${href.split('/')[4]}.${extension}`,
+            hash: `${hashPrefix}.${extension}`,
             extension,
             eachPageUrl: href,
-            name: href.split('/')[5],
+            name: `${hashPrefix}-${href.split('/')[5]}`,
             sort: 40 * page + index + 1,
           }
         })
