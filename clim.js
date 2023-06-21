@@ -107,7 +107,7 @@ function readSettingInfo() {
 async function getEachImageInfoAndDownload(allImageLinkList) {
   stepMessage('getEachImageInfoAndDownload')
 
-  const taskList = _create_task(allImageLinkList)
+  const taskList = await _create_task(allImageLinkList)
 
   const taskNumber = globalVariable.taskNumber
   const task_search = new TaskSystem(taskList, taskNumber, defaultTaskSetting(500))
@@ -117,9 +117,9 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
 
   return [allPagesImagesArray, null]
 
-  function _create_task(list) {
-    return list
-      .map((info) => {
+  async function _create_task(list) {
+    const result = await Promise.all(
+      list.map((info) => {
         const { eachPageUrl, hash, sort, name, id, extension, parent } = info
         const { directory } = globalVariable.folderMap[`${id}-${parent}`]
 
@@ -130,12 +130,14 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
         if (fs.existsSync(rawPath)) {
           if (fs.existsSync(filePath)) return null
 
-          fs.symlink(rawPath, filePath, 'file', (error) => {
-            if (error) {
-              console.log('create link error', rawPath, filePath)
-              console.log(error)
-              return () => Promise.reject(error)
-            } else return null
+          return new Promise((resolve) => {
+            fs.symlink(rawPath, filePath, 'file', (error) => {
+              if (error) {
+                console.log('create link error', rawPath, filePath)
+                console.log(error)
+                return resolve(() => Promise.reject(error))
+              } else return resolve(null)
+            })
           })
         }
 
@@ -181,7 +183,8 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
             })
         }
       })
-      .filter(Boolean)
+    )
+    return result.filter(Boolean)
   }
 }
 
