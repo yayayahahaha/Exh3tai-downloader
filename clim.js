@@ -230,7 +230,7 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id, parent }) {
             id,
             parent,
             url: url,
-            hash: `${hashMe(imageTitle)}.${extension}`,
+            hash: `${href.split('/')[4]}.${extension}`,
             extension,
             eachPageUrl: href,
             name: href.split('/')[5],
