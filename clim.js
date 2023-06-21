@@ -50,6 +50,12 @@ console.log("Let's Go!")
 if (!fs.existsSync(SAVE_DIRECTORY)) fs.mkdirSync(SAVE_DIRECTORY)
 if (!fs.existsSync(RAW_IMAGES_DIRETORY)) fs.mkdirSync(RAW_IMAGES_DIRETORY)
 
+const rawImagesMap = Object.fromEntries(
+  fs.readdirSync(RAW_IMAGES_DIRETORY).map((fileName) => {
+    return [fileName.split('-')[0], fileName.match(/^.+\.\w+-preparing$/) ? null : fileName]
+  })
+)
+
 start()
 
 async function start() {
@@ -123,12 +129,19 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
         const { eachPageUrl, hash, sort, name, id, extension, parent } = info
         const { directory } = globalVariable.folderMap[`${id}-${parent}`]
 
-        const filePath = path.resolve(`${directory}/${sort}-${name}.${extension}`)
+        const filePath = path.resolve(`${directory}/${sort}-${hash}-${id}.${extension}`)
 
-        const relativeRawPath = `${RAW_IMAGES_DIRETORY}/${hash}`
-        const rawPath = path.resolve(relativeRawPath)
-        if (fs.existsSync(rawPath)) {
+        const cachedName = rawImagesMap[hash]
+
+        let rawFileName = `${hash}-${id}.${extension}`
+        let relativeRawPath = `${RAW_IMAGES_DIRETORY}/${rawFileName}`
+        let rawPath = path.resolve(relativeRawPath)
+
+        if (cachedName != null) {
           if (fs.existsSync(filePath)) return null
+
+          relativeRawPath = `${RAW_IMAGES_DIRETORY}/${cachedName}`
+          rawPath = path.resolve(relativeRawPath)
 
           return new Promise((resolve) => {
             fs.symlink(rawPath, filePath, 'file', (error) => {
@@ -167,6 +180,8 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
           // 下載圖片到 raw-images, 然後再 link
           download(src, `${relativeRawPath}-preparing`, { headers: { Cookie: globalVariable.cookie } })
             .then(() => {
+              rawImagesMap[hash] = rawFileName
+
               fs.renameSync(`${relativeRawPath}-preparing`, relativeRawPath)
 
               fs.symlink(rawPath, filePath, 'file', (error) => {
@@ -229,16 +244,16 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id, parent }) {
           const imageTitle = $(item).find('img').attr('title')
           const extension = imageTitle.match(/\.(\w+)$/)[1]
 
-          const hashPrefix = href.split('/')[4]
+          const hash = href.split('/')[4]
 
           return {
             id,
             parent,
             url: url,
-            hash: `${hashPrefix}.${extension}`,
+            hash,
             extension,
             eachPageUrl: href,
-            name: `${hashPrefix}-${href.split('/')[5]}`,
+            name: `${hash}-${href.split('/')[5]}`,
             sort: 40 * page + index + 1,
           }
         })
@@ -276,8 +291,8 @@ async function getUrlInfo(url) {
     .text()
     .replace(illegalCharRegex, '_')
     .replace(/^_|_ExHentai_org$/g, '')
-  const directory = `${SAVE_DIRECTORY}/${title}-${parent}`
   const id = getId(url)
+  const directory = `${SAVE_DIRECTORY}/${title}-${id}`
   globalVariable.folderMap[`${id}-${parent}`] = { directory, endPage, id, title, url, parent }
 
   if (!fs.existsSync(directory)) fs.mkdirSync(directory)
