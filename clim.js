@@ -10,6 +10,9 @@
 // 5. 果然還是需要展示吧? 或是除了 terminal 以外的操作介面
 // 6. 同個圖片但不同 hash 的這種要不要做個 compare 的東西來處理?
 // -> 感覺會需要特別的演算法
+// 7. 添加一個 509 的檢查 command, 用於重新處理失敗的圖片
+// -> 真的會開始需要一個 json 檔案去記錄了的感覺，不知道 json 的 io 如何
+// -> 又或是全部都先用 create 的減少讀去，然後再去跑 merge command? 也可以在開始前跑一次 merge 之類的
 
 import fetch from 'node-fetch'
 import fs from 'fs'
