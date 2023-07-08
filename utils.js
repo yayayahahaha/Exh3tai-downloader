@@ -12,3 +12,17 @@ export function createFolders() {
   if (!fs.existsSync(RAW_IMAGES_DIRETORY)) fs.mkdirSync(RAW_IMAGES_DIRETORY)
   if (!fs.existsSync(LOG_DIRECTORY)) fs.mkdirSync(LOG_DIRECTORY)
 }
+
+export function readSettingJson() {
+  if (!fs.existsSync('setting.json')) {
+    console.log("There's no setting.json file.")
+    return null
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync('setting.json'))
+  } catch (e) {
+    console.log('Parse setting.json file error!')
+    return null
+  }
+}
