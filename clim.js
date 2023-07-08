@@ -8,6 +8,8 @@
 // 4. 把一個全部都由鏡像組成的 saveImages 轉換成實體的 images
 // -> 因為檔名比較複雜，所以不容易指定目標
 // 5. 果然還是需要展示吧? 或是除了 terminal 以外的操作介面
+// 6. 同個圖片但不同 hash 的這種要不要做個 compare 的東西來處理?
+// -> 感覺會需要特別的演算法
 
 import fetch from 'node-fetch'
 import fs from 'fs'
