@@ -1,10 +1,12 @@
-import { LOG_DIRECTORY, REUSED_LIST_LOG_PREFIX, SAVE_DIRECTORY } from './utils.js'
+import { LOG_DIRECTORY, REUSED_LIST_LOG_PREFIX, SAVE_DIRECTORY, createFolders } from './utils.js'
 import fs from 'fs'
 import path from 'path'
 
 start()
 function start() {
   console.log("Let's show reused files!")
+
+  createFolders()
 
   const hashMap = fs
     .readdirSync(SAVE_DIRECTORY)
