@@ -64,7 +64,7 @@ function start() {
     })
     .map((filePath) => {
       const { name: fileName } = path.parse(filePath)
-      const [_, hash, prefix, p1, p2] = fileName.split('-')
+      const [, hash, prefix, p1, p2] = fileName.split('-')
       return {
         hash,
         path: filePath,
@@ -82,7 +82,14 @@ function start() {
     ...borkenFileList.map((fileName) => {
       return path.resolve(path.join(RAW_IMAGES_DIRETORY, fileName))
     }),
-    saveFileList.map((file) => file.path),
+    ...saveFileList.map((file) => file.path),
   ]
-  console.log(deleteList)
+
+  console.log(`There are ${borkenFileList.length} raw images 509`)
+  console.log(`There are ${saveFileList.length} saved images 509`)
+  console.log('Going to remove them...')
+
+  deleteList.forEach((path) => fs.unlinkSync(path))
+
+  console.log('Done!')
 }
