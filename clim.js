@@ -22,7 +22,7 @@ import path from 'path'
 
 const defaultTaskSetting = (randomDelay = 0, retry = true) => ({ randomDelay, retry })
 
-import { SAVE_DIRECTORY, RAW_IMAGES_DIRETORY } from './utils.js'
+import { SAVE_DIRECTORY, RAW_IMAGES_DIRETORY, createFolders } from './utils.js'
 
 const handlePromise = (promise) => promise.then((r) => [r, null]).catch((e) => [null, e])
 const getId = (url) => url.match(/\/\/exhentai.org\/([^?]*)?/)[1].replace(/\//g, '-')
@@ -53,8 +53,7 @@ const globalVariable = {
 }
 
 console.log("Let's Go!")
-if (!fs.existsSync(SAVE_DIRECTORY)) fs.mkdirSync(SAVE_DIRECTORY)
-if (!fs.existsSync(RAW_IMAGES_DIRETORY)) fs.mkdirSync(RAW_IMAGES_DIRETORY)
+createFolders()
 
 const rawImagesMap = Object.fromEntries(
   fs.readdirSync(RAW_IMAGES_DIRETORY).map((fileName) => {
