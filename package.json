@@ -11,5 +11,8 @@
     "cheerio": "^1.0.0-rc.10",
     "node-fetch": "^3.2.3",
     "npm-flyc": "^1.0.18"
+  },
+  "devDependencies": {
+    "eslint": "^8.44.0"
   }
 }
