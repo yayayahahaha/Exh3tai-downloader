@@ -22,8 +22,7 @@ import path from 'path'
 
 const defaultTaskSetting = (randomDelay = 0, retry = true) => ({ randomDelay, retry })
 
-const SAVE_DIRECTORY = './saveImg'
-const RAW_IMAGES_DIRETORY = './raw-images'
+import { SAVE_DIRECTORY, RAW_IMAGES_DIRETORY } from './utils.js'
 
 const handlePromise = (promise) => promise.then((r) => [r, null]).catch((e) => [null, e])
 const getId = (url) => url.match(/\/\/exhentai.org\/([^?]*)?/)[1].replace(/\//g, '-')
