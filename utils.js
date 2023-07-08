@@ -6,6 +6,7 @@ export const RAW_IMAGES_DIRETORY = './raw-images'
 export const LOG_DIRECTORY = './log'
 
 export const UNCOMPLETED_URL_LIST_LOG_PREFIX = 'uncompleted-url-list'
+export const REUSED_LIST_LOG_PREFIX = 'reused-url-list'
 
 export function createFolders() {
   if (!fs.existsSync(SAVE_DIRECTORY)) fs.mkdirSync(SAVE_DIRECTORY)
