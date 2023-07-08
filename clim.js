@@ -15,7 +15,6 @@ import fetch from 'node-fetch'
 import fs from 'fs'
 import cheerio from 'cheerio'
 import { TaskSystem, download } from 'npm-flyc'
-import crypto from 'crypto'
 import path from 'path'
 
 const defaultTaskSetting = (randomDelay = 0, retry = true) => ({ randomDelay, retry })
@@ -44,8 +43,6 @@ const createRequestHeader = (url) => ({
   headers: { Cookie: globalVariable.cookie },
   jar: url ? true : undefined,
 })
-
-const hashMe = (input) => crypto.createHash('sha256').update(input, 'utf8').digest('hex')
 
 const globalVariable = {
   cookie: '',
@@ -133,7 +130,7 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
   async function _create_task(list) {
     const result = await Promise.all(
       list.map((info) => {
-        const { eachPageUrl, hash, sort, name, id, extension, parent } = info
+        const { eachPageUrl, hash, sort, id, extension, parent } = info
         const { directory } = globalVariable.folderMap[`${id}-${parent}`]
 
         const filePath = path.resolve(`${directory}/${sort}-${hash}-${id}.${extension}`)
@@ -245,7 +242,7 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id, parent }) {
 
         const body = await res.text()
         const $ = cheerio.load(body)
-        const list = $('.gdtm a')
+        const list = $('#gdt a')
         const linkArray = [...list].map((item, index) => {
           const href = $(item).attr('href')
           const imageTitle = $(item).find('img').attr('title')
@@ -264,8 +261,6 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id, parent }) {
             sort: 40 * page + index + 1,
           }
         })
-
-        const image = $('.gdtm a')
 
         return resolve(linkArray)
       }
