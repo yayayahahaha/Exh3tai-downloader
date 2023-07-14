@@ -10,6 +10,11 @@
 // 5. 果然還是需要展示吧? 或是除了 terminal 以外的操作介面
 // 6. 同個圖片但不同 hash 的這種要不要做個 compare 的東西來處理?
 // -> 感覺會需要特別的演算法
+// 7. 需要一個 verbose mode
+// -> 用於展示錯誤訊息，或是其實錯誤訊息就直接全都放 log 裡面就好了?
+// -> 有緊急停止的 callback 嗎?
+// 8. 需要在被 ban 的時候緊急停止
+// -> 修改 taskSystem? 一個大開關什麼的
 
 import fetch from 'node-fetch'
 import fs from 'fs'
