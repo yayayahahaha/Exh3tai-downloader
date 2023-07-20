@@ -41,13 +41,16 @@ export function readSettingJson() {
  * @property {string} fullName - name.ext
  * @property {string} folder - one level parent folder name
  * @property {string} fullPath - start with root
+ * @property {string} hash - unique key
+ * @property {string} url
  * */
 /**
  * @function readAllRawImages
  * @returns {ImageInfo[]|null}
  * */
 export function readAllRawImages() {
-  const imageNames = fs.readdirSync(RAW_IMAGES_DIRETORY).filter((name) => !new RegExp(PREPARE_SUFFIX).test(name))
+  // 取出全部的後，過濾掉還在準備中的
+  const imageNames = fs.readdirSync(RAW_IMAGES_DIRETORY).filter((name) => !new RegExp(`${PREPARE_SUFFIX}$`).test(name))
 
   return imageNames.map((fullName) => {
     const fullPath = path.resolve(path.join(RAW_IMAGES_DIRETORY, fullName))
@@ -55,12 +58,17 @@ export function readAllRawImages() {
     const folder = dir.split(path.sep).pop()
     const ext = path.extname(fullPath).split('.').pop()
 
+    const [hash, ...others] = name.match(/\w+/g)
+    const url = ['', ...others].join('/')
+
     return {
       name,
       ext,
       fullName,
       folder,
       fullPath,
+      hash,
+      url,
     }
   })
 }
