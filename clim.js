@@ -17,6 +17,7 @@
 // 8. 需要在被 ban 的時候緊急停止
 // -> 修改 taskSystem? 一個大開關什麼的
 // 9. 因為有多一些像是 readAllRawImages 的這種 function, 感覺每個 script 也要改寫一下
+// 10. 列出當前所有的 url, 並印成 log
 
 import fetch from 'node-fetch'
 import fs from 'fs'
