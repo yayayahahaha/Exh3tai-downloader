@@ -71,7 +71,6 @@ export function readAllRawImages() {
 export function readAllSavedImages() {
   return fs
     .readdirSync(SAVE_DIRECTORY)
-    .slice(0, 3 /*TODO(flyc):testing codes*/)
     .filter((name) => fs.lstatSync(path.resolve(path.join(SAVE_DIRECTORY, name))).isDirectory())
     .reduce(
       (result, folder) => {
@@ -82,8 +81,7 @@ export function readAllSavedImages() {
           return _getImageInfoByPath(fullPath, { type: SAVED_TYPE_VALUE })
         })
 
-        // console.log('images:', images)
-
+        result.flatImages = [...result.flatImages, ...images]
         result.sortByFolder.push({ folderName: folder, images, url: _getUrlFromFolder(folder) })
 
         return result
