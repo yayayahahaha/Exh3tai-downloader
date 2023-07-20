@@ -5,6 +5,7 @@ export const BASE_URL = 'https://exhentai.org'
 export const SAVE_DIRECTORY = './saveImg'
 export const RAW_IMAGES_DIRETORY = 'raw-images'
 export const LOG_DIRECTORY = './log'
+export const PREPARE_SUFFIX = '-preparing' // TODO(flyc): 這個也要去替換一下各個地方
 
 export const UNCOMPLETED_URL_LIST_LOG_PREFIX = 'uncompleted-url-list'
 export const REUSED_LIST_LOG_PREFIX = 'reused-url-list'
@@ -46,7 +47,7 @@ export function readSettingJson() {
  * @returns {ImageInfo[]|null}
  * */
 export function readAllRawImages() {
-  const imageNames = fs.readdirSync(RAW_IMAGES_DIRETORY)
+  const imageNames = fs.readdirSync(RAW_IMAGES_DIRETORY).filter((name) => !new RegExp(PREPARE_SUFFIX).test(name))
 
   return imageNames.map((fullName) => {
     const fullPath = path.resolve(path.join(RAW_IMAGES_DIRETORY, fullName))
@@ -63,3 +64,9 @@ export function readAllRawImages() {
     }
   })
 }
+
+/**
+ * @function readAllSavedImages
+ * @description TODO(flyc): document
+ * */
+export function readAllSavedImages() {}
