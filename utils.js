@@ -55,12 +55,13 @@ const SAVED_TYPE_VALUE = 'saved'
  * */
 export function readAllRawImages() {
   // 取出全部的後，過濾掉還在準備中的
-  const imageNames = fs.readdirSync(RAW_IMAGES_DIRETORY).filter((name) => !new RegExp(`${PREPARE_SUFFIX}$`).test(name))
-
-  return imageNames.map((fullName) => {
-    const fullPath = path.resolve(path.join(RAW_IMAGES_DIRETORY, fullName))
-    return _getImageInfoByPath(fullPath, { type: RAW_TYPE_VALUE })
-  })
+  return fs
+    .readdirSync(RAW_IMAGES_DIRETORY)
+    .filter((name) => !new RegExp(`${PREPARE_SUFFIX}$`).test(name))
+    .map((fullName) => {
+      const fullPath = path.resolve(path.join(RAW_IMAGES_DIRETORY, fullName))
+      return _getImageInfoByPath(fullPath, { type: RAW_TYPE_VALUE })
+    })
 }
 
 /**
