@@ -88,8 +88,8 @@ async function start() {
       const [response, getUrlError] = await getUrlInfo(settingUrl)
       if (getUrlError) return reject(getUrlError)
 
-      const { url, endPage, id, parent } = response
-      const [allImageLinkList, eachPageError] = await getEachPageImagesLink({ url, endPage, id, parent })
+      const { url, endPage, id } = response
+      const [allImageLinkList, eachPageError] = await getEachPageImagesLink({ url, endPage, id })
       if (eachPageError) return reject(eachPageError)
 
       const [, imageInfoError] = await getEachImageInfoAndDownload(allImageLinkList)
@@ -137,8 +137,8 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
   async function _create_task(list) {
     const result = await Promise.all(
       list.map((info) => {
-        const { eachPageUrl, hash, sort, id, extension, parent } = info
-        const { directory } = globalVariable.folderMap[`${id}-${parent}`]
+        const { eachPageUrl, hash, sort, id, extension } = info
+        const { directory } = globalVariable.folderMap[id]
 
         const filePath = path.resolve(`${directory}/${sort}-${hash}-${id}.${extension}`)
 
@@ -189,7 +189,7 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
           }
 
           // 下載圖片到 raw-images, 然後再 link
-          download(src, `${relativeRawPath}-preparing`, { headers: { Cookie: globalVariable.cookie } })
+          download(src, `${relativeRawPath}-preparing`, { headers: { Cookie: globalVariable.cookie || '' } })
             .then(() => {
               rawImagesMap[hash] = rawFileName
 
@@ -214,9 +214,9 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
   }
 }
 
-async function getEachPageImagesLink({ endPage, url: rowUrl, id, parent }) {
+async function getEachPageImagesLink({ endPage, url: rawUrl, id }) {
   stepMessage('getEachPageImagesLink')
-  const { origin, pathname } = new URL(rowUrl)
+  const { origin, pathname } = new URL(rawUrl)
   const url = `${origin}${pathname}`
 
   const permissionList = _createEachPageImagesLinkTask(url, endPage)
@@ -259,7 +259,6 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id, parent }) {
 
           return {
             id,
-            parent,
             url: url,
             hash,
             extension,
@@ -309,8 +308,6 @@ async function getUrlInfo(rawUrl) {
   const body = await res.text()
   const $ = cheerio.load(body)
 
-  const parent = $($('#gdd table tr')[1]).find('td.gdt2').text()
-
   const endPage = getEndPage($)
   if (isNaN(endPage)) {
     showError('endPage', 'endPage is not a number')
@@ -324,7 +321,7 @@ async function getUrlInfo(rawUrl) {
     .replace(/^_|_ExHentai_org$/g, '')
   const id = getId(url)
   const directory = path.join(SAVE_DIRECTORY, `${title}-${id}`)
-  globalVariable.folderMap[`${id}-${parent}`] = { directory, endPage, id, title, url, parent }
+  globalVariable.folderMap[id] = { directory, endPage, id, title, url }
 
   if (!fs.existsSync(directory)) fs.mkdirSync(directory)
 
@@ -333,5 +330,5 @@ async function getUrlInfo(rawUrl) {
   console.log(`total page: ${endPage}`)
   console.log(`save in directory: ${directory}`)
 
-  return [{ endPage, directory, id, title, url, parent }, null]
+  return [{ endPage, directory, id, title, url }, null]
 }
