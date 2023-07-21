@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { readSettingJson } from './utils.js'
+import { normalizedUrl, readSettingJson } from './utils.js'
 
 start()
 function start() {
