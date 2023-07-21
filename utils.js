@@ -69,7 +69,7 @@ export function readAllRawImages() {
     .filter((name) => !new RegExp(`${PREPARE_SUFFIX}$`).test(name))
     .map((fullName) => {
       const fullPath = path.resolve(path.join(RAW_IMAGES_DIRETORY, fullName))
-      return _getImageInfoByPath(fullPath, { type: RAW_TYPE_VALUE })
+      return _getImageInfoByPath(fullPath, { type: RAW_TYPE_VALUE, readDetail: true })
     })
 }
 
@@ -105,7 +105,7 @@ function _getUrlFromFolder(folderName) {
 }
 
 // TODO(flyc): document
-function _getImageInfoByPath(fullPath, { type } = {}) {
+function _getImageInfoByPath(fullPath, { type, readDetail = false } = {}) {
   if (type == null) {
     console.error('Parameter `type` is required.')
     return null
@@ -129,6 +129,10 @@ function _getImageInfoByPath(fullPath, { type } = {}) {
   const hash = nameMatchedKeys[hashIndex]
   const url = ['', ...nameMatchedKeys.slice(hashIndex + 1)].join('/')
 
+  const detail = !readDetail
+    ? null
+    : { ...fs.statSync(fullPath), getBase64: () => fs.readFileSync(fullPath, { encoding: 'base64' }) }
+
   return {
     name,
     ext,
@@ -137,5 +141,6 @@ function _getImageInfoByPath(fullPath, { type } = {}) {
     fullPath,
     hash,
     url,
+    detail,
   }
 }

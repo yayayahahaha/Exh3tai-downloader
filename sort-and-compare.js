@@ -5,9 +5,9 @@ import { readAllRawImages, readAllSavedImages } from './utils.js'
 start()
 
 function start() {
-  const savedImages = readAllSavedImages()
-  console.log('savedImages:', savedImages)
-  return
+  // const savedImages = readAllSavedImages()
+  // console.log('savedImages:', savedImages)
+  // return
 
   const rawImages = readAllRawImages()
   console.log('rawImages:', rawImages)

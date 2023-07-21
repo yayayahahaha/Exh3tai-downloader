@@ -3,13 +3,12 @@
 import fs from 'fs'
 import path from 'path'
 import {
-  BASE_URL,
-  SAVE_DIRECTORY,
   RAW_IMAGES_DIRETORY,
   UNCOMPLETED_URL_LIST_LOG_PREFIX,
   createFolders,
   LOG_DIRECTORY,
   PREPARE_SUFFIX,
+  readAllSavedImages,
 } from './utils.js'
 
 start()
@@ -22,7 +21,7 @@ function start() {
   const { size: size509 } = fs.statSync(PATH_509)
   const base64of509 = fs.readFileSync(PATH_509, { encoding: 'base64' })
 
-  const borkenFileList = fs.readdirSync(RAW_IMAGES_DIRETORY).filter((fileName) => {
+  const brokenFileList = fs.readdirSync(RAW_IMAGES_DIRETORY).filter((fileName) => {
     // 無視正在準備中的
     if (fileName.match(new RegExp(`${PREPARE_SUFFIX}$`))) return false
 
@@ -33,60 +32,36 @@ function start() {
 
     return fs.readFileSync(rawImagePath, { encoding: 'base64' }) === base64of509
   })
-  if (borkenFileList.length === 0) {
+
+  if (brokenFileList.length === 0) {
     console.log('There are no 509 files! Congratulation!')
     return
   }
-  console.log(`There are ${borkenFileList.length} files are 509!`)
+  console.log(`There are ${brokenFileList.length} files are 509!`)
 
-  const borkenFileMap = Object.fromEntries(
-    borkenFileList.map((file) => {
+  const brokenFileMap = Object.fromEntries(
+    brokenFileList.map((file) => {
       const hash = file.split('-')[0]
       return [hash, file]
     })
   )
 
-  const saveFileList = fs
-    .readdirSync(SAVE_DIRECTORY)
-    .map((folder) => {
-      const folderPath = path.resolve(path.join(SAVE_DIRECTORY, folder))
-      if (!fs.lstatSync(folderPath).isDirectory()) return null
-      return folderPath
-    })
-    .filter(Boolean)
-    .map((folder) => {
-      return fs.readdirSync(folder).map((fileName) => path.resolve(path.join(folder, fileName)))
-    })
-    .flat()
-    .filter((filePath) => {
-      const { name: fileName } = path.parse(filePath)
-      const hash = fileName.split('-')[1]
-      return Boolean(borkenFileMap[hash])
-    })
-    .map((filePath) => {
-      const { name: fileName } = path.parse(filePath)
-      const [, hash, prefix, p1, p2] = fileName.split('-')
-      return {
-        hash,
-        path: filePath,
-        href: [BASE_URL, prefix, p1, p2].join('/'),
-      }
-    })
+  const saveFileList = readAllSavedImages().flatImages.filter((info) => Boolean(brokenFileMap[info.hash]))
 
-  const uncompletedUrlList = [...new Set(saveFileList.map((file) => file.href))]
+  const uncompletedUrlList = [...new Set(saveFileList.map((info) => info.url))]
   fs.writeFileSync(
     path.resolve(path.join(LOG_DIRECTORY, `${UNCOMPLETED_URL_LIST_LOG_PREFIX}-${Date.now()}.json`)),
     JSON.stringify(uncompletedUrlList, null, 2)
   )
 
   const deleteList = [
-    ...borkenFileList.map((fileName) => {
+    ...brokenFileList.map((fileName) => {
       return path.resolve(path.join(RAW_IMAGES_DIRETORY, fileName))
     }),
-    ...saveFileList.map((file) => file.path),
+    ...saveFileList.map((info) => info.fullPath),
   ]
 
-  console.log(`There are ${borkenFileList.length} raw images 509`)
+  console.log(`There are ${brokenFileList.length} raw images 509`)
   console.log(`There are ${saveFileList.length} saved images 509`)
   console.log('Going to remove them...')
 
