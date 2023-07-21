@@ -234,7 +234,9 @@ async function getEachPageImagesLink({ endPage, url: rawUrl, id, directory }) {
 
   function _createEachPageImagesLinkTask({ url, endPage, directory }) {
     return [...Array(endPage)].map((_, page) => {
-      const urlWithPage = `${url}?${new URLSearchParams({ p: page }).toString()}`
+      const urlInstance = new URL(url)
+      urlInstance.searchParams.append('p', page)
+      const urlWithPage = urlInstance.href
 
       return function () {
         return new Promise(_eachPageLinkPromise)
