@@ -12,7 +12,7 @@ export const UNCOMPLETED_URL_LIST_LOG_PREFIX = 'uncompleted-url-list'
 export const REUSED_LIST_LOG_PREFIX = 'reused-url-list'
 export const PRUNE_UNLINK_FILES_LOG_PREFIX = 'unlinked-url'
 
-const ONLY_PATH_REG_EXP = new RegExp(`^/g/\\w+/\\w+$`)
+const ONLY_PATH_REG_EXP = new RegExp(`^/g/\\w+/\\w+.*$`)
 export const ILLEGAL_CHAR_REGEX = /[^\u4e00-\u9fa5_a-zA-Z0-9]+/g
 
 export function createFolders() {
@@ -110,7 +110,7 @@ export function readAllSavedImages() {
 }
 
 function _createWholeUrl(path) {
-  return `https://${EX_HOST}${path}`
+  return normalizedUrl(`https://${EX_HOST}${path}`)
 }
 
 // TODO(flyc): document
