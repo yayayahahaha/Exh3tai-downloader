@@ -28,7 +28,15 @@ import path from 'path'
 
 const defaultTaskSetting = (randomDelay = 0, retry = true) => ({ randomDelay, retry })
 
-import { SAVE_DIRECTORY, RAW_IMAGES_DIRETORY, createFolders, E_HOST, EX_HOST, normalizedUrl } from './utils.js'
+import {
+  SAVE_DIRECTORY,
+  RAW_IMAGES_DIRETORY,
+  createFolders,
+  E_HOST,
+  EX_HOST,
+  normalizedUrl,
+  readAllRawImages,
+} from './utils.js'
 
 const handlePromise = (promise) => promise.then((r) => [r, null]).catch((e) => [null, e])
 const getId = (url) => new URL(url).pathname.match(/\w+/g).join('-')
@@ -61,11 +69,7 @@ const globalVariable = {
 console.log("Let's Go!")
 createFolders()
 
-const rawImagesMap = Object.fromEntries(
-  fs.readdirSync(RAW_IMAGES_DIRETORY).map((fileName) => {
-    return [fileName.split('-')[0], fileName.match(/^.+\.\w+-preparing$/) ? null : fileName]
-  })
-)
+const rawImagesMap = Object.fromEntries(readAllRawImages().map((info) => [info.hash, true]))
 
 start()
 
@@ -234,7 +238,7 @@ async function getEachPageImagesLink({ endPage, url: rawUrl, id }) {
 
   function _createEachPageImagesLinkTask(url, endPage) {
     return [...Array(endPage)].map((_, page) => {
-      const urlWithPage = `${url}?p=${page}`
+      const urlWithPage = `${url}?${new URLSearchParams({ p: page }).toString()}`
 
       return function () {
         return new Promise(_eachPageLinkPromise)
@@ -254,8 +258,7 @@ async function getEachPageImagesLink({ endPage, url: rawUrl, id }) {
           const href = $(item).attr('href')
           const imageTitle = $(item).find('img').attr('title')
           const extension = imageTitle.match(/\.(\w+)$/)[1]
-
-          const hash = href.split('/')[4]
+          const [hash, name] = new URL(href).pathname.split('/').slice(-2)
 
           return {
             id,
@@ -263,7 +266,7 @@ async function getEachPageImagesLink({ endPage, url: rawUrl, id }) {
             hash,
             extension,
             eachPageUrl: href,
-            name: `${hash}-${href.split('/')[5]}`,
+            name: `${hash}-${name}`,
             sort: 40 * page + index + 1,
           }
         })
