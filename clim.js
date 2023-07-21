@@ -37,8 +37,6 @@ import {
   normalizedUrl,
   readAllRawImages,
   PREPARE_SUFFIX,
-  createWholeUrl,
-  ONLY_PATH_REG_EXP,
   ILLEGAL_CHAR_REGEX,
 } from './utils.js'
 
@@ -281,12 +279,7 @@ async function getEachPageImagesLink({ endPage, url: rawUrl, id, directory }) {
 }
 
 async function getUrlInfo(rawUrl) {
-  let url = null
-  if (ONLY_PATH_REG_EXP.test(rawUrl)) {
-    url = createWholeUrl(rawUrl)
-  } else {
-    url = normalizedUrl(rawUrl)
-  }
+  let url = normalizedUrl(rawUrl)
 
   if (url == null) {
     showError('Wrong url', `${rawUrl} is not correct.`)

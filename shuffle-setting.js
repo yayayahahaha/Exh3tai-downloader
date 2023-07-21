@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { readSettingJson } from './utils.js'
+import { normalizedUrl, readSettingJson } from './utils.js'
 
 start()
 function start() {
@@ -13,11 +13,7 @@ function start() {
     console.log('Key `url` in setting.json is not an array!')
     return
   }
-  const formatted = url.map((rowUrl) => {
-    const { origin, pathname } = new URL(rowUrl)
-    const url = `${origin}${pathname.replace(/\/$/, '')}`
-    return url
-  })
+  const formatted = url.map((url) => normalizedUrl(url))
 
   const shuffleUrls = [...new Set(formatted)]
   for (let i = 0; i < shuffleUrls.length; i++) {
