@@ -10,7 +10,7 @@ function start() {
   const saveImages = readAllSavedImages().flatImages
   const saveImagesMap = Object.fromEntries(saveImages.map((info) => [info.hash, true]))
 
-  const deleteList = rawImages.filter((rawInfo) => !saveImagesMap[rawInfo.hash])
+  const deleteList = rawImages.filter((rawInfo) => !saveImagesMap[rawInfo.hash]).map((item) => item.fullPath)
 
   console.log(`There are ${rawImages.length} raw Images!`)
   console.log(`There are ${saveImages.length} save Images!`)
