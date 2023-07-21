@@ -18,6 +18,7 @@
 // -> 修改 taskSystem? 一個大開關什麼的
 // 9. 因為有多一些像是 readAllRawImages 的這種 function, 感覺每個 script 也要改寫一下
 // 10. 列出當前所有的 url, 並印成 log
+// 11. 有辦法把 `globalVariable` 抽掉嗎?
 
 import fetch from 'node-fetch'
 import fs from 'fs'
@@ -285,10 +286,6 @@ async function getUrlInfo(rawUrl) {
   console.log(`current fetch url: ${url}`)
 
   const { host, protocol, pathname } = new URL(url)
-  console.log('host:', host)
-  console.log('E_HOST:', E_HOST)
-  console.log('EX_HOST:', EX_HOST)
-
   switch (host) {
     case E_HOST:
       break
@@ -326,9 +323,7 @@ async function getUrlInfo(rawUrl) {
     .replace(illegalCharRegex, '_')
     .replace(/^_|_ExHentai_org$/g, '')
   const id = getId(url)
-  console.log('id:', id)
-
-  const directory = `${SAVE_DIRECTORY}/${title}-${id}`
+  const directory = path.join(SAVE_DIRECTORY, `${title}-${id}`)
   globalVariable.folderMap[`${id}-${parent}`] = { directory, endPage, id, title, url, parent }
 
   if (!fs.existsSync(directory)) fs.mkdirSync(directory)
