@@ -18,6 +18,10 @@ export function createFolders() {
   if (!fs.existsSync(LOG_DIRECTORY)) fs.mkdirSync(LOG_DIRECTORY)
 }
 
+export function createWholeUrl(path) {
+  return `https://${EX_HOST}${path}`
+}
+
 /**
  * @function readSettingJson
  * @returns {object|null}

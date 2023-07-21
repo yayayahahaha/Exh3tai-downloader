@@ -37,6 +37,7 @@ import {
   normalizedUrl,
   readAllRawImages,
   PREPARE_SUFFIX,
+  createWholeUrl,
 } from './utils.js'
 
 const handlePromise = (promise) => promise.then((r) => [r, null]).catch((e) => [null, e])
@@ -278,7 +279,15 @@ async function getEachPageImagesLink({ endPage, url: rawUrl, id, directory }) {
 }
 
 async function getUrlInfo(rawUrl) {
-  let url = normalizedUrl(rawUrl)
+  const onlyPathRegExp = new RegExp(`^/g/\\w+/\\w+$`)
+
+  let url = null
+  if (rawUrl.match(onlyPathRegExp)) {
+    url = createWholeUrl(rawUrl)
+  } else {
+    url = normalizedUrl(rawUrl)
+  }
+
   if (url == null) {
     showError('Wrong url', `${rawUrl} is not correct.`)
     return [null, new Error('Wrong url')]
