@@ -36,6 +36,7 @@ import {
   EX_HOST,
   normalizedUrl,
   readAllRawImages,
+  PREPARE_SUFFIX,
 } from './utils.js'
 
 const handlePromise = (promise) => promise.then((r) => [r, null]).catch((e) => [null, e])
@@ -189,11 +190,11 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
           }
 
           // 下載圖片到 raw-images, 然後再 link
-          download(src, `${relativeRawPath}-preparing`, { headers: { Cookie: globalVariable.cookie || '' } })
+          download(src, `${relativeRawPath}${PREPARE_SUFFIX}`, { headers: { Cookie: globalVariable.cookie || '' } })
             .then(() => {
               rawImagesMap[hash] = rawFileName
 
-              fs.renameSync(`${relativeRawPath}-preparing`, relativeRawPath)
+              fs.renameSync(`${relativeRawPath}${PREPARE_SUFFIX}`, relativeRawPath)
 
               fs.symlink(rawPath, filePath, 'file', (error) => {
                 if (error) {

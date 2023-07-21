@@ -6,7 +6,7 @@ export const E_HOST = 'e-hentai.org'
 export const SAVE_DIRECTORY = './saveImg'
 export const RAW_IMAGES_DIRETORY = 'raw-images'
 export const LOG_DIRECTORY = './log'
-export const PREPARE_SUFFIX = '-preparing' // TODO(flyc): 這個也要去替換一下各個地方
+export const PREPARE_SUFFIX = '-preparing'
 export const MAC_STORE_FILE_NAME = '.DS_Store'
 
 export const UNCOMPLETED_URL_LIST_LOG_PREFIX = 'uncompleted-url-list'

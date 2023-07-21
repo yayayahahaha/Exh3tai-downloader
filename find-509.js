@@ -9,6 +9,7 @@ import {
   UNCOMPLETED_URL_LIST_LOG_PREFIX,
   createFolders,
   LOG_DIRECTORY,
+  PREPARE_SUFFIX,
 } from './utils.js'
 
 start()
@@ -23,7 +24,7 @@ function start() {
 
   const borkenFileList = fs.readdirSync(RAW_IMAGES_DIRETORY).filter((fileName) => {
     // 無視正在準備中的
-    if (fileName.match(/-preparing$/)) return false
+    if (fileName.match(new RegExp(`${PREPARE_SUFFIX}$`))) return false
 
     // 先過濾出檔案大小不一樣的
     const rawImagePath = path.resolve(path.join(RAW_IMAGES_DIRETORY, fileName))
