@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { normalizedUrl, readSettingJson } from './utils.js'
+import { ONLY_PATH_REG_EXP, createWholeUrl, normalizedUrl, readSettingJson } from './utils.js'
 
 start()
 function start() {
@@ -13,7 +13,7 @@ function start() {
     console.log('Key `url` in setting.json is not an array!')
     return
   }
-  const formatted = url.map((url) => normalizedUrl(url))
+  const formatted = url.map((url) => (ONLY_PATH_REG_EXP.test(url) ? createWholeUrl(url) : normalizedUrl(url)))
 
   const uniqueUrls = [...new Set(formatted)]
   jsonData.url = uniqueUrls

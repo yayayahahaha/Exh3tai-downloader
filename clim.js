@@ -282,7 +282,7 @@ async function getEachPageImagesLink({ endPage, url: rawUrl, id, directory }) {
 
 async function getUrlInfo(rawUrl) {
   let url = null
-  if (rawUrl.match(ONLY_PATH_REG_EXP)) {
+  if (ONLY_PATH_REG_EXP.test(rawUrl)) {
     url = createWholeUrl(rawUrl)
   } else {
     url = normalizedUrl(rawUrl)
