@@ -38,6 +38,8 @@ import {
   readAllRawImages,
   PREPARE_SUFFIX,
   createWholeUrl,
+  ONLY_PATH_REG_EXP,
+  ILLEGAL_CHAR_REGEX,
 } from './utils.js'
 
 const handlePromise = (promise) => promise.then((r) => [r, null]).catch((e) => [null, e])
@@ -279,10 +281,8 @@ async function getEachPageImagesLink({ endPage, url: rawUrl, id, directory }) {
 }
 
 async function getUrlInfo(rawUrl) {
-  const onlyPathRegExp = new RegExp(`^/g/\\w+/\\w+$`)
-
   let url = null
-  if (rawUrl.match(onlyPathRegExp)) {
+  if (rawUrl.match(ONLY_PATH_REG_EXP)) {
     url = createWholeUrl(rawUrl)
   } else {
     url = normalizedUrl(rawUrl)
@@ -326,11 +326,10 @@ async function getUrlInfo(rawUrl) {
     return [null, new Error('endPage is not a number')]
   }
 
-  const illegalCharRegex = /[^\u4e00-\u9fa5_a-zA-Z0-9]+/g
   const title = $('title')
     .text()
-    .replace(illegalCharRegex, '_')
-    .replace(/^_|_ExHentai_org$/g, '')
+    .replace(ILLEGAL_CHAR_REGEX, '_')
+    .replace(/^_|_ExHentai_org$/g, '') // TODO(flyc): 這裡要看一下 E 會不會出問題
   const id = getId(url)
   const directory = path.join(SAVE_DIRECTORY, `${title}-${id}`)
 

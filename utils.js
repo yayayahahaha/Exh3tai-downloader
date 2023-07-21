@@ -12,6 +12,9 @@ export const UNCOMPLETED_URL_LIST_LOG_PREFIX = 'uncompleted-url-list'
 export const REUSED_LIST_LOG_PREFIX = 'reused-url-list'
 export const PRUNE_UNLINK_FILES_LOG_PREFIX = 'unlinked-url'
 
+export const ONLY_PATH_REG_EXP = new RegExp(`^/g/\\w+/\\w+$`)
+export const ILLEGAL_CHAR_REGEX = /[^\u4e00-\u9fa5_a-zA-Z0-9]+/g
+
 export function createFolders() {
   if (!fs.existsSync(SAVE_DIRECTORY)) fs.mkdirSync(SAVE_DIRECTORY)
   if (!fs.existsSync(RAW_IMAGES_DIRETORY)) fs.mkdirSync(RAW_IMAGES_DIRETORY)
@@ -45,6 +48,7 @@ export function normalizedUrl(url, errorDefault = null) {
     const { origin, pathname } = new URL(url)
     return `${origin}${pathname.replace(/\/$/, '')}`
   } catch (e) {
+    console.log('normalizedUrl: wrong url!', url)
     return errorDefault
   }
 }
