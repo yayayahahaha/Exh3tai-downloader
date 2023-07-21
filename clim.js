@@ -63,7 +63,6 @@ const createRequestHeader = (url) => ({
 const globalVariable = {
   cookie: '',
   taskNumber: 2,
-  folderMap: {},
 }
 
 console.log("Let's Go!")
@@ -92,8 +91,8 @@ async function start() {
       const [response, getUrlError] = await getUrlInfo(settingUrl)
       if (getUrlError) return reject(getUrlError)
 
-      const { url, endPage, id } = response
-      const [allImageLinkList, eachPageError] = await getEachPageImagesLink({ url, endPage, id })
+      const { url, endPage, id, directory } = response
+      const [allImageLinkList, eachPageError] = await getEachPageImagesLink({ url, endPage, id, directory })
       if (eachPageError) return reject(eachPageError)
 
       const [, imageInfoError] = await getEachImageInfoAndDownload(allImageLinkList)
@@ -141,11 +140,8 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
   async function _create_task(list) {
     const result = await Promise.all(
       list.map((info) => {
-        const { eachPageUrl, hash, sort, id, extension } = info
-        const { directory } = globalVariable.folderMap[id]
-
+        const { eachPageUrl, hash, sort, id, extension, directory } = info
         const filePath = path.resolve(`${directory}/${sort}-${hash}-${id}.${extension}`)
-
         const cachedName = rawImagesMap[hash]
 
         let rawFileName = `${hash}-${id}.${extension}`
@@ -218,12 +214,12 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
   }
 }
 
-async function getEachPageImagesLink({ endPage, url: rawUrl, id }) {
+async function getEachPageImagesLink({ endPage, url: rawUrl, id, directory }) {
   stepMessage('getEachPageImagesLink')
   const { origin, pathname } = new URL(rawUrl)
   const url = `${origin}${pathname}`
 
-  const permissionList = _createEachPageImagesLinkTask(url, endPage)
+  const permissionList = _createEachPageImagesLinkTask({ url, endPage, directory })
 
   const taskNumber = globalVariable.taskNumber
   const task_search = new TaskSystem(permissionList, taskNumber, defaultTaskSetting())
@@ -236,7 +232,7 @@ async function getEachPageImagesLink({ endPage, url: rawUrl, id }) {
 
   return [allPagesImagesArray, null]
 
-  function _createEachPageImagesLinkTask(url, endPage) {
+  function _createEachPageImagesLinkTask({ url, endPage, directory }) {
     return [...Array(endPage)].map((_, page) => {
       const urlWithPage = `${url}?${new URLSearchParams({ p: page }).toString()}`
 
@@ -268,6 +264,7 @@ async function getEachPageImagesLink({ endPage, url: rawUrl, id }) {
             eachPageUrl: href,
             name: `${hash}-${name}`,
             sort: 40 * page + index + 1,
+            directory,
           }
         })
 
@@ -324,7 +321,6 @@ async function getUrlInfo(rawUrl) {
     .replace(/^_|_ExHentai_org$/g, '')
   const id = getId(url)
   const directory = path.join(SAVE_DIRECTORY, `${title}-${id}`)
-  globalVariable.folderMap[id] = { directory, endPage, id, title, url }
 
   if (!fs.existsSync(directory)) fs.mkdirSync(directory)
 
