@@ -27,10 +27,10 @@ import path from 'path'
 
 const defaultTaskSetting = (randomDelay = 0, retry = true) => ({ randomDelay, retry })
 
-import { SAVE_DIRECTORY, RAW_IMAGES_DIRETORY, createFolders } from './utils.js'
+import { SAVE_DIRECTORY, RAW_IMAGES_DIRETORY, createFolders, E_HOST, EX_HOST, normalizedUrl } from './utils.js'
 
 const handlePromise = (promise) => promise.then((r) => [r, null]).catch((e) => [null, e])
-const getId = (url) => url.match(/\/\/exhentai.org\/([^?]*)?/)[1].replace(/\//g, '-')
+const getId = (url) => new URL(url).pathname.match(/\w+/g).join('-')
 const showError = (where, content) => console.error(`[${where}] ${content}`)
 const stepMessage = (content, length = 7) => {
   const headTail = Array(length).fill('=').join('')
@@ -73,7 +73,7 @@ async function start() {
   const jsonContent = readSettingInfo()
 
   const { cookie, url: urlList, taskNumber = 4, workerCount = 1 } = jsonContent
-  if (!cookie || !urlList || isNaN(taskNumber)) return void showError('Parse setting.json', 'params error!')
+  if (!Array.isArray(urlList) || isNaN(taskNumber)) return void showError('Parse setting.json', 'params error!')
 
   globalVariable.cookie = cookie
   globalVariable.taskNumber = taskNumber
@@ -274,9 +274,35 @@ async function getEachPageImagesLink({ endPage, url: rowUrl, id, parent }) {
   }
 }
 
-async function getUrlInfo(url) {
+async function getUrlInfo(rawUrl) {
+  let url = normalizedUrl(rawUrl)
+  if (url == null) {
+    showError('Wrong url', `${rawUrl} is not correct.`)
+    return [null, new Error('Wrong url')]
+  }
+
   stepMessage('Get Url Info')
   console.log(`current fetch url: ${url}`)
+
+  const { host, protocol, pathname } = new URL(url)
+  console.log('host:', host)
+  console.log('E_HOST:', E_HOST)
+  console.log('EX_HOST:', EX_HOST)
+
+  switch (host) {
+    case E_HOST:
+      break
+    case EX_HOST:
+      if (!globalVariable.cookie) {
+        showError('Cookie missing', "Cookie cannot be empty when it's ex.")
+        url = `${protocol}//${E_HOST}${pathname}`
+        console.log(`try to fech it in E: ${url}\n`)
+      }
+      break
+    default:
+      showError('Wrong Url', `url is not e or ex: ${JSON.stringify(url)}`)
+      return [null, new Error('Wrong Url')]
+  }
 
   const [res, error] = await handlePromise(fetch(url, createRequestHeader()))
   if (error) {
@@ -300,6 +326,8 @@ async function getUrlInfo(url) {
     .replace(illegalCharRegex, '_')
     .replace(/^_|_ExHentai_org$/g, '')
   const id = getId(url)
+  console.log('id:', id)
+
   const directory = `${SAVE_DIRECTORY}/${title}-${id}`
   globalVariable.folderMap[`${id}-${parent}`] = { directory, endPage, id, title, url, parent }
 

@@ -1,7 +1,8 @@
 import fs from 'fs'
 import path from 'path'
 
-export const BASE_URL = 'https://exhentai.org'
+export const EX_HOST = 'exhentai.org'
+export const E_HOST = 'e-hentai.org'
 export const SAVE_DIRECTORY = './saveImg'
 export const RAW_IMAGES_DIRETORY = 'raw-images'
 export const LOG_DIRECTORY = './log'
@@ -32,6 +33,15 @@ export function readSettingJson() {
   } catch (e) {
     console.log('Parse setting.json file error!')
     return null
+  }
+}
+
+export function normalizedUrl(url, errorDefault = null) {
+  try {
+    const { origin, pathname } = new URL(url)
+    return `${origin}${pathname.replace(/\/$/, '')}`
+  } catch (e) {
+    return errorDefault
   }
 }
 
