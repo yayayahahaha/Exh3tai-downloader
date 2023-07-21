@@ -14,6 +14,7 @@ function start() {
     return
   }
   const formatted = url.map((url) => normalizedUrl(url))
+  if (formatted.some((url) => url == null)) return console.log('unique failed!')
 
   const shuffleUrls = [...new Set(formatted)]
   for (let i = 0; i < shuffleUrls.length; i++) {

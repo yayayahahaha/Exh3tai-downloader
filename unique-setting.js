@@ -14,6 +14,7 @@ function start() {
     return
   }
   const formatted = url.map((url) => normalizedUrl(url))
+  if (formatted.some((url) => url == null)) return console.log('unique failed!')
 
   const uniqueUrls = [...new Set(formatted)]
   jsonData.url = uniqueUrls
