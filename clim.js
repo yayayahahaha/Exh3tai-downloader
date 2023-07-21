@@ -145,13 +145,13 @@ async function getEachImageInfoAndDownload(allImageLinkList) {
         const cachedName = rawImagesMap[hash]
 
         let rawFileName = `${hash}-${id}.${extension}`
-        let relativeRawPath = `${RAW_IMAGES_DIRETORY}/${rawFileName}`
+        let relativeRawPath = path.join(RAW_IMAGES_DIRETORY, rawFileName)
         let rawPath = path.resolve(relativeRawPath)
 
         if (cachedName != null) {
           if (fs.existsSync(filePath)) return null
 
-          relativeRawPath = `${RAW_IMAGES_DIRETORY}/${cachedName}`
+          relativeRawPath = path.join(RAW_IMAGES_DIRETORY, cachedName)
           rawPath = path.resolve(relativeRawPath)
 
           return new Promise((resolve) => {
