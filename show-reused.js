@@ -1,4 +1,4 @@
-import { LOG_DIRECTORY, REUSED_LIST_LOG_PREFIX, SAVE_DIRECTORY, createFolders } from './utils.js'
+import { LOG_DIRECTORY, REUSED_LIST_LOG_PREFIX, createFolders, readAllSavedImages } from './utils.js'
 import fs from 'fs'
 import path from 'path'
 
@@ -8,25 +8,14 @@ function start() {
 
   createFolders()
 
-  const hashMap = fs
-    .readdirSync(SAVE_DIRECTORY)
-    .map((folder) => {
-      const saveFolderPath = path.resolve(path.join(SAVE_DIRECTORY, folder))
-      if (!fs.lstatSync(saveFolderPath).isDirectory()) return null
+  const hashMap = readAllSavedImages().flatImages.reduce((map, imageInfo) => {
+    const { hash, fullPath } = imageInfo
 
-      return fs.readdirSync(saveFolderPath).map((fileName) => path.join(saveFolderPath, fileName))
-    })
-    .filter(Boolean)
-    .flat()
-    .reduce((map, filePath) => {
-      const { name } = path.parse(filePath)
-      const hash = name.split('-')[1]
-
-      map[hash] = map[hash] || { count: 0, paths: [] }
-      map[hash].count++
-      map[hash].paths.push(filePath)
-      return map
-    }, {})
+    map[hash] = map[hash] || { count: 0, paths: [] }
+    map[hash].count++
+    map[hash].paths.push(fullPath)
+    return map
+  }, {})
 
   const reusedList = Object.keys(hashMap)
     .filter((key) => hashMap[key].count !== 1)

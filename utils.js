@@ -7,7 +7,6 @@ export const SAVE_DIRECTORY = './saveImg'
 export const RAW_IMAGES_DIRETORY = 'raw-images'
 export const LOG_DIRECTORY = './log'
 export const PREPARE_SUFFIX = '-preparing'
-export const MAC_STORE_FILE_NAME = '.DS_Store'
 
 export const UNCOMPLETED_URL_LIST_LOG_PREFIX = 'uncompleted-url-list'
 export const REUSED_LIST_LOG_PREFIX = 'reused-url-list'
