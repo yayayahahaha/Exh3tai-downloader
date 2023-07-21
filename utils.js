@@ -56,20 +56,23 @@ const SAVED_TYPE_VALUE = 'saved'
  * @property {string} folder - one level parent folder name
  * @property {string} fullPath - start with root
  * @property {string} hash - unique key
- * @property {string} url
+ * @property {string} url - url without host
+ * @property {object|null} detail - fs.statSync with getBase64 function: fs.readFileSync({path}, { encoding: 'base64' })
  * */
 /**
  * @function readAllRawImages
+ * @param {Object} [payload={}]
+ * @param {boolean} [payload.readDetail=false] - put fs.statSync info `detail`
  * @returns {ImageInfo[]|null}
  * */
-export function readAllRawImages() {
+export function readAllRawImages({ readDetail = false } = {}) {
   // 取出全部的後，過濾掉還在準備中的
   return fs
     .readdirSync(RAW_IMAGES_DIRETORY)
     .filter((name) => !new RegExp(`${PREPARE_SUFFIX}$`).test(name))
     .map((fullName) => {
       const fullPath = path.resolve(path.join(RAW_IMAGES_DIRETORY, fullName))
-      return _getImageInfoByPath(fullPath, { type: RAW_TYPE_VALUE, readDetail: true })
+      return _getImageInfoByPath(fullPath, { type: RAW_TYPE_VALUE, readDetail })
     })
 }
 
@@ -104,7 +107,14 @@ function _getUrlFromFolder(folderName) {
   return ['', ...folderName.match(/\w+/g).slice(-3)].join('/')
 }
 
-// TODO(flyc): document
+/**
+ * @function _getImageInfoByPath
+ * @param {string} fullPath - full file path
+ * @param {object} config
+ * @param {RAW_TYPE_VALUE|SAVED_TYPE_VALUE} config.type
+ * @param {boolean} [config.readDetail=false] - fs.statSync and bind getBase64 function
+ * @returns {ImageInfo}
+ * */
 function _getImageInfoByPath(fullPath, { type, readDetail = false } = {}) {
   if (type == null) {
     console.error('Parameter `type` is required.')
