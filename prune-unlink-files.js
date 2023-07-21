@@ -24,11 +24,7 @@ function start() {
   const logName = `${PRUNE_UNLINK_FILES_LOG_PREFIX}-${Date.now()}.json`
   fs.writeFileSync(
     path.resolve(path.join(LOG_DIRECTORY, logName)),
-    JSON.stringify(
-      deleteList.map((info) => info.url),
-      null,
-      2
-    )
+    JSON.stringify([...new Set(deleteList.map((info) => info.url))], null, 2)
   )
 
   console.log(`${deleteList.length} images in raw images are not linked to any save images.`)
