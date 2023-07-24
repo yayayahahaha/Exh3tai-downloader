@@ -1,25 +1,3 @@
-// TODO
-// 1. 撰寫階段性的下載機制: 像是直接匯入已經進到某些頁面的網址之類的
-// 雖然這樣說但 p=0 之類的其實沒有什麼區別..
-// 再看看要用參數之類的去處理這件事情, 或是做檔案存在與否的檢查之類的
-// 2. 做 url 的 "某個" 圖片後面的數目不會下載，用於過濾角色圖片和背景等
-// 3. rawImages 如果沒有匹配到的鏡像的話就把 rawImage 刪除的一個 function
-// -> 目前的檔名裡面是有這些資訊的，改動的幅度應該不會太大
-// 4. 把一個全部都由鏡像組成的 saveImages 轉換成實體的 images
-// -> 因為檔名比較複雜，所以不容易指定目標
-// -> 需要做一個 UI 介面用選的? 感覺可以逐步做出 UI 的功能
-// 5. 果然還是需要展示吧? 或是除了 terminal 以外的操作介面
-// 6. 同個圖片但不同 hash 的這種要不要做個 compare 的東西來處理?
-// -> 感覺會需要特別的演算法
-// 7. 需要一個 verbose mode
-// -> 用於展示錯誤訊息，或是其實錯誤訊息就直接全都放 log 裡面就好了?
-// -> 有緊急停止的 callback 嗎?
-// 8. 需要在被 ban 的時候緊急停止
-// -> 修改 taskSystem? 一個大開關什麼的
-// 9. 因為有多一些像是 readAllRawImages 的這種 function, 感覺每個 script 也要改寫一下
-// 10. 列出當前所有的 url, 並印成 log
-// 11. 有辦法把 `globalVariable` 抽掉嗎?
-
 import fetch from 'node-fetch'
 import fs from 'fs'
 import cheerio from 'cheerio'
