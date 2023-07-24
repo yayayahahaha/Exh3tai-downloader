@@ -1,4 +1,5 @@
 // WIP
+// https://github.com/jimp-dev/jimp/tree/main/packages/jimp
 
 import { readAllRawImages, readAllSavedImages } from './utils.js'
 
