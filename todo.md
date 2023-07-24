@@ -14,5 +14,4 @@
    > 有緊急停止的 callback 嗎?
 7. 需要在被 ban 的時候緊急停止
    > 修改 taskSystem? 一個大開關什麼的
-8. 列出當前所有的 url, 並印成 log
-9. 有辦法把 `globalVariable` 抽掉嗎?
+8. 有辦法把 `globalVariable` 抽掉嗎?
