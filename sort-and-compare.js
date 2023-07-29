@@ -6,12 +6,8 @@ import { readAllRawImages, readAllSavedImages } from './utils.js'
 start()
 
 function start() {
-  // const savedImages = readAllSavedImages()
-  // console.log('savedImages:', savedImages)
-  // return
-
-  const rawImages = readAllRawImages()
-  console.log('rawImages:', rawImages)
+  const rawImages = readAllRawImages().map(({ fullPath }) => fullPath)
+  console.log(rawImages[0])
 }
 
 /*
