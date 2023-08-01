@@ -48,7 +48,7 @@ const globalVariable = {
 console.log("Let's Go!")
 createFolders()
 
-const rawImagesMap = Object.fromEntries(readAllRawImages().map((info) => [info.hash, true]))
+const rawImagesMap = Object.fromEntries(readAllRawImages().map((info) => [info.hash, info.fullName]))
 
 start()
 
