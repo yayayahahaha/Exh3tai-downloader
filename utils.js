@@ -11,6 +11,7 @@ export const PREPARE_SUFFIX = '-preparing'
 export const UNCOMPLETED_URL_LIST_LOG_PREFIX = 'uncompleted-url-list'
 export const REUSED_LIST_LOG_PREFIX = 'reused-url-list'
 export const PRUNE_UNLINK_FILES_LOG_PREFIX = 'unlinked-url'
+export const DUPLICATE_FOLDER_LOG_PREFIX = 'duplicate-folder'
 
 const MAC_CONFIG_FILE = '.DS_Store'
 const ONLY_PATH_REG_EXP = new RegExp(`^/g/\\w+/\\w+.*$`)
