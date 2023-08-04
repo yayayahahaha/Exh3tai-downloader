@@ -15,6 +15,7 @@ export const PRUNE_UNLINK_FILES_LOG_PREFIX = 'unlinked-url'
 const MAC_CONFIG_FILE = '.DS_Store'
 const ONLY_PATH_REG_EXP = new RegExp(`^/g/\\w+/\\w+.*$`)
 export const ILLEGAL_CHAR_REGEX = /[^\u4e00-\u9fa5_a-zA-Z0-9]+/g
+export const TAIL_CHAR_REGEX = /^_|_ExHentai_org$|_E_Hentai_Galleries?$/g
 
 export function createFolders() {
   if (!fs.existsSync(SAVE_DIRECTORY)) fs.mkdirSync(SAVE_DIRECTORY)

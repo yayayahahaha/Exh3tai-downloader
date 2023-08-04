@@ -16,6 +16,7 @@ import {
   readAllRawImages,
   PREPARE_SUFFIX,
   ILLEGAL_CHAR_REGEX,
+  TAIL_CHAR_REGEX,
 } from './utils.js'
 
 const handlePromise = (promise) => promise.then((r) => [r, null]).catch((e) => [null, e])
@@ -297,10 +298,7 @@ async function getUrlInfo(rawUrl) {
     return [null, new Error('endPage is not a number')]
   }
 
-  const title = $('title')
-    .text()
-    .replace(ILLEGAL_CHAR_REGEX, '_')
-    .replace(/^_|_ExHentai_org$/g, '') // TODO(flyc): 這裡要看一下 E 會不會出問題
+  const title = $('title').text().replace(ILLEGAL_CHAR_REGEX, '_').replace(TAIL_CHAR_REGEX, '')
   const id = getId(url)
   const directory = path.join(SAVE_DIRECTORY, `${title}-${id}`)
 
