@@ -1,10 +1,18 @@
-import { DUPLICATE_FOLDER_LOG_PREFIX, LOG_DIRECTORY, SAVE_DIRECTORY, readAllSavedImages } from './utils.js'
+import {
+  DUPLICATE_FOLDER_LOG_PREFIX,
+  LOG_DIRECTORY,
+  SAVE_DIRECTORY,
+  createFolders,
+  readAllSavedImages,
+} from './utils.js'
 import path from 'path'
 import fs from 'fs'
 
 start()
 
 function start() {
+  createFolders()
+
   const result = readAllSavedImages().flatImages.reduce((map, image) => {
     const { url, folder } = image
 
