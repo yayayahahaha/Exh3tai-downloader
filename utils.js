@@ -12,6 +12,7 @@ export const UNCOMPLETED_URL_LIST_LOG_PREFIX = 'uncompleted-url-list'
 export const REUSED_LIST_LOG_PREFIX = 'reused-url-list'
 export const PRUNE_UNLINK_FILES_LOG_PREFIX = 'unlinked-url'
 
+const MAC_CONFIG_FILE = '.DS_Store'
 const ONLY_PATH_REG_EXP = new RegExp(`^/g/\\w+/\\w+.*$`)
 export const ILLEGAL_CHAR_REGEX = /[^\u4e00-\u9fa5_a-zA-Z0-9]+/g
 
@@ -76,7 +77,7 @@ export function readAllRawImages({ readDetail = false } = {}) {
   // 取出全部的後，過濾掉還在準備中的
   return fs
     .readdirSync(RAW_IMAGES_DIRETORY)
-    .filter((name) => !new RegExp(`${PREPARE_SUFFIX}$`).test(name))
+    .filter((name) => name !== MAC_CONFIG_FILE && !new RegExp(`${PREPARE_SUFFIX}$`).test(name))
     .map((fullName) => {
       const fullPath = path.resolve(path.join(RAW_IMAGES_DIRETORY, fullName))
       return _getImageInfoByPath(fullPath, { type: RAW_TYPE_VALUE, readDetail })
@@ -95,10 +96,13 @@ export function readAllSavedImages() {
       (result, folder) => {
         const fullFolderPath = path.resolve(path.join(SAVE_DIRECTORY, folder))
 
-        const images = fs.readdirSync(fullFolderPath).map((name) => {
-          const fullPath = path.join(fullFolderPath, name)
-          return _getImageInfoByPath(fullPath, { type: SAVED_TYPE_VALUE })
-        })
+        const images = fs
+          .readdirSync(fullFolderPath)
+          .filter((name) => name !== MAC_CONFIG_FILE)
+          .map((name) => {
+            const fullPath = path.join(fullFolderPath, name)
+            return _getImageInfoByPath(fullPath, { type: SAVED_TYPE_VALUE })
+          })
 
         result.flatImages = [...result.flatImages, ...images]
         result.sortByFolder.push({ folderName: folder, images, url: _getUrlFromFolder(folder) })
