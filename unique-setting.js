@@ -13,7 +13,7 @@ function start() {
     console.log('Key `url` in setting.json is not an array!')
     return
   }
-  const formatted = url.map((url) => normalizedUrl(url))
+  const formatted = url.map((url) => normalizedUrl(url).currentUrl)
   if (formatted.some((url) => url == null)) return console.log('unique failed!')
 
   const uniqueUrls = [...new Set(formatted)]

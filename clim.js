@@ -14,6 +14,10 @@ import {
   EX_HOST,
   normalizedUrl,
   readAllRawImages,
+  showError,
+  readSettingInfo,
+  checkParam,
+  stepMessage,
   PREPARE_SUFFIX,
   ILLEGAL_CHAR_REGEX,
   TAIL_CHAR_REGEX,
@@ -21,12 +25,7 @@ import {
 
 const handlePromise = (promise) => promise.then((r) => [r, null]).catch((e) => [null, e])
 const getId = (url) => new URL(url).pathname.match(/\w+/g).join('-')
-const showError = (where, content) => console.error(`[${where}] ${content}`)
-const stepMessage = (content, length = 7) => {
-  const headTail = Array(length).fill('=').join('')
-  console.log()
-  console.log(`${headTail} ${content} ${headTail}`)
-}
+
 const getEndPage = ($) => {
   const pagerSelector = 'table.ptt td'
   const pagers = $(pagerSelector)
@@ -46,20 +45,26 @@ const globalVariable = {
   taskNumber: 2,
 }
 
-console.log("Let's Go!")
-createFolders()
-
 const rawImagesMap = Object.fromEntries(readAllRawImages().map((info) => [info.hash, info.fullName]))
 
 start()
 
 async function start() {
+  console.log("Let's Go!")
+
+  // Create needed folders
+  stepMessage('Create needed folders')
+  createFolders()
+  console.log('Create folders success')
+
   stepMessage('Load setting.json')
   const jsonContent = readSettingInfo()
+  if (jsonContent == null) return
+  if (!checkParam(jsonContent)) return
 
   const { cookie, url: urlList, taskNumber = 4, workerCount = 1 } = jsonContent
-  if (!Array.isArray(urlList) || isNaN(taskNumber)) return void showError('Parse setting.json', 'params error!')
 
+  // TODO 看能不能拿掉這兩個 global variable
   globalVariable.cookie = cookie
   globalVariable.taskNumber = taskNumber
 
@@ -69,13 +74,16 @@ async function start() {
     return new Promise(_promise_callback)
 
     async function _promise_callback(resolve, reject) {
+      // 取得 url 的基本資訊
       const [response, getUrlError] = await getUrlInfo(settingUrl)
       if (getUrlError) return reject(getUrlError)
 
+      // 根據娶回來的基本資訊去 fetch 每一頁的詳細資料
       const { url, endPage, id, directory } = response
       const [allImageLinkList, eachPageError] = await getEachPageImagesLink({ url, endPage, id, directory })
       if (eachPageError) return reject(eachPageError)
 
+      // 實際開始下載
       const [, imageInfoError] = await getEachImageInfoAndDownload(allImageLinkList)
       if (imageInfoError) return reject(imageInfoError)
 
@@ -89,20 +97,6 @@ async function start() {
   await taskAll.doPromise()
 
   stepMessage('全部完成囉!!!!')
-}
-
-function readSettingInfo() {
-  const content = fs.readFileSync('setting.json')
-  let jsonContent = null
-
-  try {
-    jsonContent = JSON.parse(content)
-  } catch (e) {
-    showError('Parse setting.json', 'JSON.parse failed!')
-    jsonContent = {}
-  }
-
-  return jsonContent
 }
 
 async function getEachImageInfoAndDownload(allImageLinkList) {
@@ -258,46 +252,57 @@ async function getEachPageImagesLink({ endPage, url: rawUrl, id, directory }) {
 }
 
 async function getUrlInfo(rawUrl) {
-  let url = normalizedUrl(rawUrl)
-
-  if (url == null) {
+  // 正規化 url
+  const urlInfo = normalizedUrl(rawUrl)
+  if (urlInfo == null) {
     showError('Wrong url', `${rawUrl} is not correct.`)
     return [null, new Error('Wrong url')]
   }
 
-  stepMessage('Get Url Info')
-  console.log(`current fetch url: ${url}`)
+  const { currentUrl: url } = urlInfo
+  const { host } = new URL(url)
 
-  const { host, protocol, pathname } = new URL(url)
+  // 根據當前的 fetch 網址，判斷 cookie 是不是空的 or url 是錯的
   switch (host) {
     case E_HOST:
       break
+
     case EX_HOST:
       if (!globalVariable.cookie) {
         showError('Cookie missing', "Cookie cannot be empty when it's ex.")
-        url = `${protocol}//${E_HOST}${pathname}`
-        console.log(`try to fech it in E: ${url}\n`)
+        return [null, new Error("Cookies' missing")]
       }
       break
+
     default:
       showError('Wrong Url', `url is not e or ex: ${JSON.stringify(url)}`)
       return [null, new Error('Wrong Url')]
   }
 
+  stepMessage('Get Url Info')
+  console.log(`current fetch url: ${url}`)
+
+  // 實際開始拉取
   const [res, error] = await handlePromise(fetch(url, createRequestHeader()))
   if (error) {
-    showError('getUrlInfo', 'get url basic info failed!')
+    showError('getUrlInfo', `get url '${url}'' basic info failed!`)
+
+    if (urlInfo.failAndCheckRetry()) return getUrlInfo(urlInfo)
     return [null, error]
   }
-  const body = await res.text()
-  const $ = cheerio.load(body)
 
+  // 取得 pageNumber, 就算 fetch 成功也可能沒有 pageNumber
+  const body = await res.text().catch((r) => console.log('r?', r))
+  const $ = cheerio.load(body)
   const endPage = getEndPage($)
   if (isNaN(endPage)) {
     showError('endPage', 'endPage is not a number')
+
+    if (urlInfo.failAndCheckRetry()) return getUrlInfo(urlInfo)
     return [null, new Error('endPage is not a number')]
   }
 
+  // 取得基本的資料後回傳
   const title = $('title').text().replace(ILLEGAL_CHAR_REGEX, '_').replace(TAIL_CHAR_REGEX, '')
   const id = getId(url)
   const directory = path.join(SAVE_DIRECTORY, `${title}-${id}`)

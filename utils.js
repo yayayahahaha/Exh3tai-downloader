@@ -19,6 +19,14 @@ const ONLY_PATH_REG_EXP = new RegExp(`^/g/\\w+/\\w+.*$`)
 export const ILLEGAL_CHAR_REGEX = /[^\u4e00-\u9fa5_a-zA-Z0-9]+/g
 export const TAIL_CHAR_REGEX = /^_|_ExHentai_org$|_E_Hentai_Galleries?$/g
 
+const addProtocolPrifix = (path, host = E_HOST) => `https://${host}${path}`
+export const showError = (where, content) => console.error(`[${where}] ${content}`)
+export const stepMessage = (content, length = 7) => {
+  const headTail = Array(length).fill('=').join('')
+  console.log()
+  console.log(`${headTail} ${content} ${headTail}`)
+}
+
 export function createFolders() {
   if (!fs.existsSync(SAVE_DIRECTORY)) fs.mkdirSync(SAVE_DIRECTORY)
   if (!fs.existsSync(RAW_IMAGES_DIRETORY)) fs.mkdirSync(RAW_IMAGES_DIRETORY)
@@ -44,14 +52,47 @@ export function readSettingJson() {
   }
 }
 
+class NormalizedUrlInstance {
+  #failedCount = 0
+  #e
+  #ex
+
+  constructor(path) {
+    this.#e = addProtocolPrifix(path, E_HOST)
+    this.#ex = addProtocolPrifix(path, EX_HOST)
+    this.#failedCount = 0
+
+    return this
+  }
+
+  get currentUrl() {
+    return this.#failedCount === 0 ? this.#e : this.#ex
+  }
+
+  get everTriedBoth() {
+    return this.#failedCount >= 2
+  }
+
+  fail() {
+    this.#failedCount++
+  }
+
+  failAndCheckRetry() {
+    this.fail()
+    return !this.everTriedBoth
+  }
+}
+
 export function normalizedUrl(url, errorDefault = null) {
-  if (ONLY_PATH_REG_EXP.test(url)) return _createWholeUrl(url)
+  if (url instanceof NormalizedUrlInstance) return url
+
+  if (ONLY_PATH_REG_EXP.test(url)) return new NormalizedUrlInstance(url)
 
   try {
-    const { origin, pathname } = new URL(url)
-    return `${origin}${pathname.replace(/\/$/, '')}`
+    const { pathname } = new URL(url)
+    return new NormalizedUrlInstance(pathname)
   } catch (e) {
-    console.log('normalizedUrl: wrong url!', url)
+    console.log('[normalizedUrl] wrong url!', url, e)
     return errorDefault
   }
 }
@@ -117,10 +158,6 @@ export function readAllSavedImages() {
     )
 }
 
-function _createWholeUrl(path) {
-  return normalizedUrl(`https://${EX_HOST}${path}`)
-}
-
 // TODO(flyc): document
 function _getUrlFromFolder(folderName) {
   return ['', ...folderName.match(/\w+/g).slice(-3)].join('/')
@@ -172,4 +209,45 @@ function _getImageInfoByPath(fullPath, { type, readDetail = false } = {}) {
     url,
     detail,
   }
+}
+
+export function readSettingInfo() {
+  const content = fs.readFileSync('setting.json')
+  let jsonContent = null
+
+  try {
+    jsonContent = JSON.parse(content)
+  } catch (e) {
+    showError('Parse setting.json', 'JSON.parse failed!')
+    jsonContent = null
+  }
+
+  return jsonContent
+}
+
+export function checkParam(jsonContent) {
+  if (typeof jsonContent !== 'object' || jsonContent == null) return void showError('Paramsters error', 'json is null')
+
+  const keys = [
+    { value: 'cookie', type: 'string', validate: (value) => typeof value === 'string' },
+    { value: 'taskNumber', type: 'number', validate: (value) => typeof value === 'number' },
+    { value: 'workerCount', type: 'number', validate: (value) => typeof value === 'number' },
+    { value: 'url', type: 'array', validate: (value) => Array.isArray(value) },
+    { value: 'makeItReal', type: 'array', validate: (value) => Array.isArray(value) },
+  ].filter((keyInfo) => jsonContent[keyInfo.value] !== undefined)
+
+  const hasError = []
+  for (let i = 0; i < keys.length; i++) {
+    const { value, validate } = keys[i]
+    const jsonValue = jsonContent[value]
+
+    if (!validate(jsonValue)) hasError.push(keys[i])
+  }
+
+  if (hasError.length !== 0) {
+    hasError.forEach(({ value, type }) => showError('Parameters error', `'${value}' should be an ${type}`))
+    return false
+  }
+
+  return true
 }
