@@ -229,7 +229,7 @@ async function getEachPageImagesLink({ endPage, url: rawUrl, id, directory }) {
         const list = $('#gdt a')
         const linkArray = [...list].map((item, index) => {
           const href = $(item).attr('href')
-          const imageTitle = $(item).find('img').attr('title')
+          const imageTitle = $(item).find('div').attr('title')
           const extension = imageTitle.match(/\.(\w+)$/)[1]
           const [hash, name] = new URL(href).pathname.split('/').slice(-2)
 
