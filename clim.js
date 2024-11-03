@@ -22,6 +22,7 @@ import {
   ILLEGAL_CHAR_REGEX,
   TAIL_CHAR_REGEX,
 } from './utils.js'
+import { addToFavorite } from './favorate.js'
 
 const handlePromise = (promise) => promise.then((r) => [r, null]).catch((e) => [null, e])
 const getId = (url) => new URL(url).pathname.match(/\w+/g).join('-')
@@ -74,11 +75,14 @@ async function start() {
     return new Promise(_promise_callback)
 
     async function _promise_callback(resolve, reject) {
+      // 先加到 favorite 吧
+      await addToFavorite(settingUrl, cookie)
+
       // 取得 url 的基本資訊
       const [response, getUrlError] = await getUrlInfo(settingUrl)
       if (getUrlError) return reject(getUrlError)
 
-      // 根據娶回來的基本資訊去 fetch 每一頁的詳細資料
+      // 根據取回來的基本資訊去 fetch 每一頁的詳細資料
       const { url, endPage, id, directory } = response
       const [allImageLinkList, eachPageError] = await getEachPageImagesLink({ url, endPage, id, directory })
       if (eachPageError) return reject(eachPageError)

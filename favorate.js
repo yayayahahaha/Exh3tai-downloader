@@ -24,7 +24,7 @@ async function start() {
   console.log('成功')
 }
 
-async function addToFavorite(url, cookie) {
+export async function addToFavorite(url, cookie) {
   console.log(`正要添加到 favorite 的 url: ${url}`)
 
   const { pathname } = new URL(url)
