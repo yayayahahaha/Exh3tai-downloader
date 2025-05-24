@@ -2,8 +2,7 @@ import fetch from 'node-fetch'
 
 import { readSettingInfo, checkParam, stepMessage } from './utils.js'
 
-start()
-
+start
 async function start() {
   console.log("Let's Go!")
 
@@ -36,10 +35,12 @@ export async function addToFavorite(url, cookie) {
     t,
   }).toString()
   const headers = createFavorateHeader(url, cookie)
+  const finalHeader = { ...headers }
 
-  return fetch(`https://exhentai.org/gallerypopups.php?${queryString}`, {
-    headers,
-    body: 'favcat=0&favnote=&apply=Add+to+Favorites&update=1',
+  const apiUrl = `https://exhentai.org/gallerypopups.php?${queryString}`
+  return fetch(apiUrl, {
+    headers: finalHeader,
+    body: 'favcat=0&favnote=&apply=Apply+Changes&update=1',
     method: 'POST',
   })
 }
