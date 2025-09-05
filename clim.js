@@ -1,10 +1,11 @@
+// 針對單張圖片下載失敗時，由於會被 settled 過濾掉的關係、所以最後送出的還是成功的
+// 這部分也要 throw 成失敗給外層捕捉才行
+
 import fetch from 'node-fetch'
 import fs from 'fs'
 import cheerio from 'cheerio'
-import { TaskSystem, download } from 'npm-flyc'
+import { download } from 'npm-flyc'
 import path from 'path'
-
-const defaultTaskSetting = (randomDelay = 0, retry = true) => ({ randomDelay, retry })
 
 import {
   SAVE_DIRECTORY,
@@ -14,15 +15,28 @@ import {
   EX_HOST,
   normalizedUrl,
   readAllRawImages,
-  showError,
   readSettingInfo,
   checkParam,
-  stepMessage,
   PREPARE_SUFFIX,
   ILLEGAL_CHAR_REGEX,
   TAIL_CHAR_REGEX,
 } from './utils.js'
-import { addToFavorite } from './favorate.js'
+import { addToFavorite, ErrorRes } from './favorate.js'
+import {
+  blue,
+  cyan,
+  green,
+  lightBlue,
+  lightCyan,
+  lightGreen,
+  lightMagenta,
+  lightRed,
+  lightYellow,
+  magenta,
+  red,
+  yellow,
+} from './console-color.js'
+import pLimit from 'p-limit'
 
 const handlePromise = (promise) => promise.then((r) => [r, null]).catch((e) => [null, e])
 const getId = (url) => new URL(url).pathname.match(/\w+/g).join('-')
@@ -51,17 +65,19 @@ const rawImagesMap = Object.fromEntries(readAllRawImages().map((info) => [info.h
 start()
 
 async function start() {
-  console.log("Let's Go!")
+  console.log(lightYellow(`Let's Go!`))
 
   // Create needed folders
-  stepMessage('Create needed folders')
+  console.log(lightBlue('創建需要的資料夾'))
   createFolders()
-  console.log('Create folders success')
+  console.log(lightGreen('> 需要的資料夾創建成功'))
 
-  stepMessage('Load setting.json')
+  // Read settings
+  console.log(lightBlue('讀取設定檔'))
   const jsonContent = readSettingInfo()
-  if (jsonContent == null) return
-  if (!checkParam(jsonContent)) return
+  if (jsonContent == null) return console.log(lightRed('設定檔讀取失敗!'))
+  if (!checkParam(jsonContent)) return console.log(lightRed('設定檔參數檢查失敗!'))
+  console.log(lightGreen('> 設定檔讀取成功'))
 
   const { cookie, url: urlList, taskNumber = 4, workerCount = 1 } = jsonContent
 
@@ -69,198 +85,213 @@ async function start() {
   globalVariable.cookie = cookie
   globalVariable.taskNumber = taskNumber
 
-  console.log('Load setting.json success')
+  let finishedCount = 0
+  const urlLimit = pLimit(workerCount)
 
-  const urlListTask = urlList.map((settingUrl) => () => {
-    return new Promise(_promise_callback)
+  const urlListTask = urlList.map((settingUrl) => {
+    return urlLimit(async function () {
+      return addToFavorite(settingUrl, cookie)
+        .then(() => {
+          // 取得 url 的基本資訊
+          return getUrlInfo(settingUrl)
+        })
+        .then((response) => {
+          // 根據取回來的基本資訊去 fetch 每一頁的詳細資料
+          const { url, endPage, id, directory } = response
+          return Promise.all([getEachPageImagesLink({ url, endPage, id, directory }), response])
+        })
+        .then(([allImageLinkList, basicInfo]) => {
+          // 實際開始下載
+          return getEachImageInfoAndDownload(allImageLinkList, basicInfo)
+        })
+        .then(() => {
+          console.log(lightGreen(`✨ url ${settingUrl} 完成囉 ✨`))
 
-    async function _promise_callback(resolve, reject) {
-      // 先加到 favorite 吧
-      await addToFavorite(settingUrl, cookie)
+          finishedCount++
+          console.log(`\n🕰️ ${finishedCount}/${urlList.length}\n`)
+        })
+        .catch((errorInfo) => {
+          const { error, type } = errorInfo
 
-      // 取得 url 的基本資訊
-      const [response, getUrlError] = await getUrlInfo(settingUrl)
-      if (getUrlError) return reject(getUrlError)
+          switch (type) {
+            case ErrorRes.TYPE_MAP.FAVORITE:
+              ErrorRes.TYPE_INFO_MAP.FAVORITE.logError(settingUrl, error)
+              throw error
+          }
 
-      // 根據取回來的基本資訊去 fetch 每一頁的詳細資料
-      const { url, endPage, id, directory } = response
-      const [allImageLinkList, eachPageError] = await getEachPageImagesLink({ url, endPage, id, directory })
-      if (eachPageError) return reject(eachPageError)
-
-      // 實際開始下載
-      const [, imageInfoError] = await getEachImageInfoAndDownload(allImageLinkList)
-      if (imageInfoError) return reject(imageInfoError)
-
-      stepMessage(`url ${settingUrl} 完成囉!`)
-      console.log()
-      return resolve()
-    }
+          console.log(lightRed('未知錯誤'), errorInfo)
+          throw errorInfo
+        })
+    })
   })
 
-  const taskAll = new TaskSystem(urlListTask, workerCount, defaultTaskSetting(500))
-  await taskAll.doPromise()
+  console.log(lightBlue('\n💃💃💃 開始跑流程囉 💃💃💃'))
+  console.log(cyan('總需處理筆數:'), urlListTask.length)
+  console.log(cyan('工人數:'), workerCount)
+  console.log()
 
-  stepMessage('全部完成囉!!!!')
+  Promise.all(urlListTask)
+    .then(() => {
+      console.log(lightGreen('✨✨✨ 全部完成囉 ✨✨✨'))
+    })
+    .catch(() => {
+      console.log(lightRed('🕷️🕷️🕷️ 中間有失敗喔 🕷️🕷️🕷️ '))
+    })
 }
 
-async function getEachImageInfoAndDownload(allImageLinkList) {
-  stepMessage('getEachImageInfoAndDownload')
+async function getEachImageInfoAndDownload(allImageLinkList, basicInfo) {
+  const { id } = basicInfo
 
-  const taskList = await _create_task(allImageLinkList)
+  console.log(lightMagenta(`開始下載 ${id} 的圖片`))
 
-  const taskNumber = globalVariable.taskNumber
-  const task_search = new TaskSystem(taskList, taskNumber, defaultTaskSetting(500))
+  const imagesLimit = pLimit(globalVariable.taskNumber)
+  const taskList = _create_task(allImageLinkList)
 
-  let allPagesImagesArray = (await task_search.doPromise()).filter((result) => result.status === 1)
-  allPagesImagesArray = allPagesImagesArray.map(({ data }) => data)
+  return Promise.allSettled(taskList).then((settledResult) => {
+    return settledResult.filter((item) => item.status === 'fulfilled').map(({ value }) => value)
+  })
 
-  return [allPagesImagesArray, null]
+  function _create_task(list) {
+    let finished = 0
+    return list.map((info) => {
+      const { eachPageUrl, hash, sort, id, extension, directory } = info
 
-  async function _create_task(list) {
-    const result = await Promise.all(
-      list.map((info) => {
-        const { eachPageUrl, hash, sort, id, extension, directory } = info
-        const filePath = path.resolve(`${directory}/${sort}-${hash}-${id}.${extension}`)
-        const cachedName = rawImagesMap[hash]
+      // region cache part
+      const filePath = path.resolve(`${directory}/${sort}-${hash}-${id}.${extension}`)
+      const cachedName = rawImagesMap[hash]
+      let rawFileName = `${hash}-${id}.${extension}`
+      let relativeRawPath = path.join(RAW_IMAGES_DIRETORY, rawFileName)
+      let rawPath = path.resolve(relativeRawPath)
+      if (cachedName != null) {
+        if (fs.existsSync(filePath)) {
+          finished++
+          console.log(
+            cyan(`${finished}/${allImageLinkList.length}`),
+            blue(`${id} 的 ${sort} 已有 cache 且已有連結，直接結束執行緒`)
+          )
+          return imagesLimit(() => null)
+        }
 
-        let rawFileName = `${hash}-${id}.${extension}`
-        let relativeRawPath = path.join(RAW_IMAGES_DIRETORY, rawFileName)
-        let rawPath = path.resolve(relativeRawPath)
+        relativeRawPath = path.join(RAW_IMAGES_DIRETORY, cachedName)
+        rawPath = path.resolve(relativeRawPath)
 
-        if (cachedName != null) {
-          if (fs.existsSync(filePath)) return null
+        return imagesLimit(async function () {
+          fs.symlinkSync(rawPath, filePath, 'file')
 
-          relativeRawPath = path.join(RAW_IMAGES_DIRETORY, cachedName)
-          rawPath = path.resolve(relativeRawPath)
+          finished++
+          console.log(
+            cyan(`${finished}/${allImageLinkList.length}`),
+            blue(`${id} 的 ${sort} 已有 cache, 連結後結束執行緒`)
+          )
+        })
+      }
+      // endregion cache part
 
-          return new Promise((resolve) => {
-            fs.symlink(rawPath, filePath, 'file', (error) => {
-              if (error) {
-                console.log('create link error', rawPath, filePath)
-                console.log(error)
-                return resolve(() => Promise.reject(error))
-              } else return resolve(null)
+      if (fs.existsSync(filePath)) {
+        console.log(green(`${filePath} 已經存在`))
+        return imagesLimit(() => null)
+      }
+
+      return imagesLimit(function () {
+        return fetch(eachPageUrl, createRequestHeader())
+          .then((res) => res.text())
+          .then((body) => {
+            const $ = cheerio.load(body)
+            const imageDom = $('#img')
+
+            const src = imageDom.attr('src')
+            if (src == null) {
+              console.log(lightRed(`${id} 的 ${sort} 的 img 沒有 src !`))
+              throw new ErrorRes(ErrorRes.TYPE_MAP.IMAGE_SRC_NOT_EXIST, new Error('image src not exist'))
+            }
+
+            // 下載圖片到 raw-images, 然後再 link
+            return download(src, `${relativeRawPath}${PREPARE_SUFFIX}`, {
+              headers: { Cookie: globalVariable.cookie || '' },
+            }).catch((error) => {
+              console.log(lightRed(`${id} 的 ${sort} 下載失敗!`), src)
+              throw new ErrorRes(ErrorRes.TYPE_MAP.IMAGEDOWN_LOAD_FAILED, new Error(error))
             })
           })
-        }
+          .then(() => {
+            rawImagesMap[hash] = rawFileName
 
-        return function () {
-          return new Promise(_getEachImageInfoAndDownloadPromise)
-        }
-
-        async function _getEachImageInfoAndDownloadPromise(resolve, reject) {
-          if (fs.existsSync(filePath)) return resolve()
-
-          const [res, error] = await handlePromise(fetch(eachPageUrl, createRequestHeader()))
-          if (error) {
-            showError('getImgSrcByLink', 'api errur!')
-            return reject(error)
-          }
-
-          const body = await res.text()
-          const $ = cheerio.load(body)
-          const imageDom = $('#img')
-
-          const src = imageDom.attr('src')
-          if (src == null) {
-            console.log('[ERROR] src is not exist!', JSON.stringify(info, null, 2))
-            return reject()
-          }
-
-          // 下載圖片到 raw-images, 然後再 link
-          download(src, `${relativeRawPath}${PREPARE_SUFFIX}`, { headers: { Cookie: globalVariable.cookie || '' } })
-            .then(() => {
-              rawImagesMap[hash] = rawFileName
-
-              fs.renameSync(`${relativeRawPath}${PREPARE_SUFFIX}`, relativeRawPath)
-
-              fs.symlink(rawPath, filePath, 'file', (error) => {
-                if (error) {
-                  console.log('create link error', rawPath, filePath)
-                  console.log(error)
-                  reject(error)
-                } else resolve()
-              })
-              return resolve()
-            })
-            .catch((error) => {
-              reject(error)
-            })
-        }
+            fs.renameSync(`${relativeRawPath}${PREPARE_SUFFIX}`, relativeRawPath)
+            return fs.symlinkSync(rawPath, filePath, 'file')
+          })
+          .then(() => {
+            finished++
+            console.log(cyan(`${finished}/${allImageLinkList.length}`), green(`${id} 的 ${sort} 下載完畢`))
+          })
       })
-    )
-    return result.filter(Boolean)
+    })
   }
 }
 
 async function getEachPageImagesLink({ endPage, url: rawUrl, id, directory }) {
-  stepMessage('getEachPageImagesLink')
+  console.log(lightCyan(`🎀 開始取得 ${id} 的每一頁的資訊`))
+
   const { origin, pathname } = new URL(rawUrl)
   const url = `${origin}${pathname}`
 
-  const permissionList = _createEachPageImagesLinkTask({ url, endPage, directory })
+  const pageLimit = pLimit(globalVariable.taskNumber)
 
-  const taskNumber = globalVariable.taskNumber
-  const task_search = new TaskSystem(permissionList, taskNumber, defaultTaskSetting())
-
-  let allPagesImagesArray = (await task_search.doPromise()).filter((result) => result.status === 1)
-  allPagesImagesArray = allPagesImagesArray
-    .map(({ data }) => data)
-    .reduce((list, pageInfo) => list.concat(pageInfo), [])
-    .sort((a, b) => a.sort - b.sort)
-
-  return [allPagesImagesArray, null]
-
-  function _createEachPageImagesLinkTask({ url, endPage, directory }) {
-    return [...Array(endPage)].map((_, page) => {
+  const permissionList = [...Array(endPage)].map((_, page) =>
+    pageLimit(async function () {
       const urlInstance = new URL(url)
       urlInstance.searchParams.append('p', page)
       const urlWithPage = urlInstance.href
 
-      return function () {
-        return new Promise(_eachPageLinkPromise)
-      }
+      return fetch(urlWithPage, createRequestHeader())
+        .then((res) => res.text())
+        .then((body) => {
+          const $ = cheerio.load(body)
+          const list = $('#gdt a')
+          const linkArray = [...list].map((item, index) => {
+            const href = $(item).attr('href')
+            const imageTitle = $(item).find('div[title]').attr('title')
+            const extension = imageTitle.match(/\.(\w+)$/)[1]
+            const [hash, name] = new URL(href).pathname.split('/').slice(-2)
 
-      async function _eachPageLinkPromise(resolve, reject) {
-        const [res, error] = await handlePromise(fetch(urlWithPage, createRequestHeader()))
-        if (error) {
-          showError(`get ${urlWithPage}`, 'api request failed')
-          return reject(error)
-        }
+            return {
+              id,
+              url: url,
+              hash,
+              extension,
+              eachPageUrl: href,
+              name: `${hash}-${name}`,
+              sort: 40 * page + index + 1,
+              directory,
+            }
+          })
 
-        const body = await res.text()
-        const $ = cheerio.load(body)
-        const list = $('#gdt a')
-        const linkArray = [...list].map((item, index) => {
-          const href = $(item).attr('href')
-          const imageTitle = $(item).find('div[title]').attr('title')
-          const extension = imageTitle.match(/\.(\w+)$/)[1]
-          const [hash, name] = new URL(href).pathname.split('/').slice(-2)
-
-          return {
-            id,
-            url: url,
-            hash,
-            extension,
-            eachPageUrl: href,
-            name: `${hash}-${name}`,
-            sort: 40 * page + index + 1,
-            directory,
-          }
+          return linkArray
         })
-
-        return resolve(linkArray)
-      }
+        .catch((error) => {
+          console.log(lightRed(`取得 ${id} 的第 ${page} 頁失敗!`), error)
+          throw ErrorRes(ErrorRes.TYPE_MAP.PAGE_INFO_FAILED, new Error(error))
+        })
     })
-  }
+  )
+
+  return Promise.allSettled(permissionList).then((settledList) => {
+    const result = settledList
+      .filter((result) => result.status === 'fulfilled')
+      .map(({ value }) => value)
+      .reduce((list, pageInfo) => list.concat(pageInfo), [])
+      .sort((a, b) => a.sort - b.sort)
+      .map((item, index) => ({ ...item, sort: index + 1 }))
+
+    console.log(yellow(`取得 ${id} 所有頁面資訊成功, 共 ${result.length} 筆資料`))
+    return result
+  })
 }
 
 async function getUrlInfo(rawUrl) {
   // 正規化 url
   const urlInfo = normalizedUrl(rawUrl)
   if (urlInfo == null) {
-    showError('Wrong url', `${rawUrl} is not correct.`)
-    return [null, new Error('Wrong url')]
+    throw new ErrorRes(ErrorRes.TYPE_MAP.NORMALIZED_URL, new Error('normalized url error'))
   }
 
   const { currentUrl: url } = urlInfo
@@ -273,37 +304,45 @@ async function getUrlInfo(rawUrl) {
 
     case EX_HOST:
       if (!globalVariable.cookie) {
-        showError('Cookie missing', "Cookie cannot be empty when it's ex.")
-        return [null, new Error("Cookies' missing")]
+        console.log(lightRed('Cookie missing'))
+        throw new ErrorRes(ErrorRes.TYPE_MAP.COOKIES_MISSING, new Error('EX_HOST 缺少 Cookies'))
       }
       break
 
     default:
-      showError('Wrong Url', `url is not e or ex: ${JSON.stringify(url)}`)
-      return [null, new Error('Wrong Url')]
+      console.log(lightRed('Wrong Url'))
+      throw new ErrorRes(ErrorRes.TYPE_MAP.WRONG_URL, new Error('url is not e or ex'))
   }
 
-  stepMessage('Get Url Info')
-  console.log(`current fetch url: ${url}`)
+  console.log(lightCyan(`🦀 開始取得作品的資訊`))
+  console.log(cyan('當前 url: '), url)
 
   // 實際開始拉取
   const [res, error] = await handlePromise(fetch(url, createRequestHeader()))
   if (error) {
-    showError('getUrlInfo', `get url '${url}'' basic info failed!`)
+    console.log(red(`取得 ${url} 的基本資訊失敗!`))
 
-    if (urlInfo.failAndCheckRetry()) return getUrlInfo(urlInfo)
-    return [null, error]
+    if (urlInfo.failAndCheckRetry()) {
+      console.log(magenta(`${url} 還有嘗試機會，繼續嘗試..`))
+      return getUrlInfo(urlInfo)
+    }
+    console.log(lightRed(`取得 ${url} 的基本資訊失敗且嘗試機會已經沒了!`))
+    throw new ErrorRes(ErrorRes.TYPE_MAP.BASIC_INFO_FAILED, new Error('get basic info failed'))
   }
 
   // 取得 pageNumber, 就算 fetch 成功也可能沒有 pageNumber
-  const body = await res.text().catch((r) => console.log('r?', r))
+  const body = await res.text()
   const $ = cheerio.load(body)
   const endPage = getEndPage($)
   if (isNaN(endPage)) {
-    showError('endPage', 'endPage is not a number')
+    console.log(red(`取得 ${url} 的頁碼資訊失敗!`))
 
-    if (urlInfo.failAndCheckRetry()) return getUrlInfo(urlInfo)
-    return [null, new Error('endPage is not a number')]
+    if (urlInfo.failAndCheckRetry()) {
+      console.log(magenta(`${url} 還有嘗試機會，繼續嘗試..`))
+      return getUrlInfo(urlInfo)
+    }
+    console.log(lightRed(`取得 ${url} 的頁碼資訊失敗且嘗試機會已經沒了!`))
+    return new ErrorRes(ErrorRes.TYPE_MAP.PAGE_NUMBER_FAILED, new Error('endPage is not a number'))
   }
 
   // 取得基本的資料後回傳
@@ -313,10 +352,10 @@ async function getUrlInfo(rawUrl) {
 
   if (!fs.existsSync(directory)) fs.mkdirSync(directory)
 
-  console.log('get url info success')
-  console.log("gallery's title: " + title)
-  console.log(`total page: ${endPage}`)
-  console.log(`save in directory: ${directory}`)
+  console.log(green(`🐳 取得 ${url} 的基本資料成功`))
+  console.log(cyan('標題:'), lightYellow(title))
+  console.log(cyan('ID:'), lightYellow(id), cyan('總頁數:'), endPage)
+  console.log(cyan('儲存的資料夾:'), directory)
 
-  return [{ endPage, directory, id, title, url }, null]
+  return { endPage, directory, id, title, url }
 }

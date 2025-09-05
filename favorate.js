@@ -1,6 +1,7 @@
 import fetch from 'node-fetch'
 
 import { readSettingInfo, checkParam, stepMessage } from './utils.js'
+import { lightCyan, lightGreen, lightRed } from './console-color.js'
 
 start
 async function start() {
@@ -23,8 +24,39 @@ async function start() {
   console.log('成功')
 }
 
+export class ErrorRes {
+  constructor(type, error) {
+    this.type = type
+    this.error = error
+  }
+
+  static TYPE_INFO_MAP = {
+    FAVORITE: { logError: (url, error) => console.log(lightRed(`添加 ${url} 到 favorite  失敗`), error) },
+    NORMALIZED_URL: {},
+    COOKIES_MISSING: {},
+    WRONG_URL: {},
+    BASIC_INFO_FAILED: {},
+    PAGE_NUMBER_FAILED: {},
+    PAGE_INFO_FAILED: {},
+    IMAGE_SRC_NOT_EXIST: {},
+    IMAGEDOWN_LOAD_FAILED: {},
+  }
+
+  static TYPE_MAP = {
+    FAVORITE: 'FAVORITE',
+    NORMALIZED_URL: 'NORMALIZED_URL',
+    COOKIES_MISSING: 'COOKIES_MISSING',
+    WRONG_URL: 'WRONG_URL',
+    BASIC_INFO_FAILED: 'BASIC_INFO_FAILED',
+    PAGE_NUMBER_FAILED: 'PAGE_NUMBER_FAILED',
+    PAGE_INFO_FAILED: 'PAGE_INFO_FAILED',
+    IMAGE_SRC_NOT_EXIST: 'IMAGE_SRC_NOT_EXIST',
+    IMAGEDOWN_LOAD_FAILED: 'IMAGEDOWN_LOAD_FAILED',
+  }
+}
+
 export async function addToFavorite(url, cookie) {
-  console.log(`正要添加到 favorite 的 url: ${url}`)
+  console.log(lightCyan(`開始添加到 ${url} 到 favorite`))
 
   const { pathname } = new URL(url)
   const [, , gid, t] = pathname.split('/')
@@ -43,6 +75,10 @@ export async function addToFavorite(url, cookie) {
     body: 'favcat=0&favnote=&apply=Apply+Changes&update=1',
     method: 'POST',
   })
+    .then(() => console.log(lightGreen(`📒 ${url} favorite 添加成功`)))
+    .catch((error) => {
+      throw new ErrorRes(ErrorRes.TYPE_MAP.FAVORITE, error)
+    })
 }
 
 function createFavorateHeader(url, cookie) {
