@@ -20,6 +20,9 @@ importers:
       npm-flyc:
         specifier: ^1.0.18
         version: 1.0.18
+      p-limit:
+        specifier: ^7.1.1
+        version: 7.1.1
     devDependencies:
       eslint:
         specifier: ^8.44.0
@@ -660,6 +663,10 @@ packages:
     resolution: {integrity: sha512-TYOanM3wGwNGsZN2cVTYPArw454xnXj5qmWF1bEoAc4+cU/ol7GVh7odevjp1FNHduHc3KZMcFduxU5Xc6uJRQ==}
     engines: {node: '>=10'}
 
+  p-limit@7.1.1:
+    resolution: {integrity: sha512-i8PyM2JnsNChVSYWLr2BAjNoLi0BAYC+wecOnZnVV+YSNJkzP7cWmvI34dk0WArWfH9KwBHNoZI3P3MppImlIA==}
+    engines: {node: '>=20'}
+
   p-locate@5.0.0:
     resolution: {integrity: sha512-LaNjtRWUBY++zB5nE/NwcaoMylSPk+S+ZHNB1TzdbMJMny6dynpAGt7X/tl/QYq3TIeE6nxHppbo2LGymrG5Pw==}
     engines: {node: '>=10'}
@@ -900,6 +907,10 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
+  yocto-queue@1.2.1:
+    resolution: {integrity: sha512-AyeEbWOu/TAXdxlV9wmGcR0+yh2j3vYPGOECcIj2S7MkrLyC7ne+oye2BKTItt0ii2PHk4cDy+95+LshzbXnGg==}
+    engines: {node: '>=12.20'}
+
 snapshots:
 
   '@aashutoshrathi/word-wrap@1.2.6': {}
@@ -999,20 +1010,20 @@ snapshots:
       '@jimp/utils': 0.22.8
       tinycolor2: 1.6.0
 
-  '@jimp/plugin-contain@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8)(@jimp/plugin-resize@0.22.8)(@jimp/plugin-scale@0.22.8)':
+  '@jimp/plugin-contain@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-scale@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8)))':
     dependencies:
       '@jimp/custom': 0.22.8
       '@jimp/plugin-blit': 0.22.8(@jimp/custom@0.22.8)
       '@jimp/plugin-resize': 0.22.8(@jimp/custom@0.22.8)
-      '@jimp/plugin-scale': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-resize@0.22.8)
+      '@jimp/plugin-scale': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))
       '@jimp/utils': 0.22.8
 
-  '@jimp/plugin-cover@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-crop@0.22.8)(@jimp/plugin-resize@0.22.8)(@jimp/plugin-scale@0.22.8)':
+  '@jimp/plugin-cover@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-crop@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-scale@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8)))':
     dependencies:
       '@jimp/custom': 0.22.8
       '@jimp/plugin-crop': 0.22.8(@jimp/custom@0.22.8)
       '@jimp/plugin-resize': 0.22.8(@jimp/custom@0.22.8)
-      '@jimp/plugin-scale': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-resize@0.22.8)
+      '@jimp/plugin-scale': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))
       '@jimp/utils': 0.22.8
 
   '@jimp/plugin-crop@0.22.8(@jimp/custom@0.22.8)':
@@ -1035,10 +1046,10 @@ snapshots:
       '@jimp/custom': 0.22.8
       '@jimp/utils': 0.22.8
 
-  '@jimp/plugin-flip@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-rotate@0.22.8)':
+  '@jimp/plugin-flip@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-rotate@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-crop@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8)))':
     dependencies:
       '@jimp/custom': 0.22.8
-      '@jimp/plugin-rotate': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8)(@jimp/plugin-crop@0.22.8)(@jimp/plugin-resize@0.22.8)
+      '@jimp/plugin-rotate': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-crop@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))
       '@jimp/utils': 0.22.8
 
   '@jimp/plugin-gaussian@0.22.8(@jimp/custom@0.22.8)':
@@ -1061,7 +1072,7 @@ snapshots:
       '@jimp/custom': 0.22.8
       '@jimp/utils': 0.22.8
 
-  '@jimp/plugin-print@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8)':
+  '@jimp/plugin-print@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8(@jimp/custom@0.22.8))':
     dependencies:
       '@jimp/custom': 0.22.8
       '@jimp/plugin-blit': 0.22.8(@jimp/custom@0.22.8)
@@ -1073,7 +1084,7 @@ snapshots:
       '@jimp/custom': 0.22.8
       '@jimp/utils': 0.22.8
 
-  '@jimp/plugin-rotate@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8)(@jimp/plugin-crop@0.22.8)(@jimp/plugin-resize@0.22.8)':
+  '@jimp/plugin-rotate@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-crop@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))':
     dependencies:
       '@jimp/custom': 0.22.8
       '@jimp/plugin-blit': 0.22.8(@jimp/custom@0.22.8)
@@ -1081,20 +1092,20 @@ snapshots:
       '@jimp/plugin-resize': 0.22.8(@jimp/custom@0.22.8)
       '@jimp/utils': 0.22.8
 
-  '@jimp/plugin-scale@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-resize@0.22.8)':
+  '@jimp/plugin-scale@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))':
     dependencies:
       '@jimp/custom': 0.22.8
       '@jimp/plugin-resize': 0.22.8(@jimp/custom@0.22.8)
       '@jimp/utils': 0.22.8
 
-  '@jimp/plugin-shadow@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blur@0.22.8)(@jimp/plugin-resize@0.22.8)':
+  '@jimp/plugin-shadow@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blur@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))':
     dependencies:
       '@jimp/custom': 0.22.8
       '@jimp/plugin-blur': 0.22.8(@jimp/custom@0.22.8)
       '@jimp/plugin-resize': 0.22.8(@jimp/custom@0.22.8)
       '@jimp/utils': 0.22.8
 
-  '@jimp/plugin-threshold@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-color@0.22.8)(@jimp/plugin-resize@0.22.8)':
+  '@jimp/plugin-threshold@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-color@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))':
     dependencies:
       '@jimp/custom': 0.22.8
       '@jimp/plugin-color': 0.22.8(@jimp/custom@0.22.8)
@@ -1108,23 +1119,23 @@ snapshots:
       '@jimp/plugin-blur': 0.22.8(@jimp/custom@0.22.8)
       '@jimp/plugin-circle': 0.22.8(@jimp/custom@0.22.8)
       '@jimp/plugin-color': 0.22.8(@jimp/custom@0.22.8)
-      '@jimp/plugin-contain': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8)(@jimp/plugin-resize@0.22.8)(@jimp/plugin-scale@0.22.8)
-      '@jimp/plugin-cover': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-crop@0.22.8)(@jimp/plugin-resize@0.22.8)(@jimp/plugin-scale@0.22.8)
+      '@jimp/plugin-contain': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-scale@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8)))
+      '@jimp/plugin-cover': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-crop@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-scale@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8)))
       '@jimp/plugin-crop': 0.22.8(@jimp/custom@0.22.8)
       '@jimp/plugin-displace': 0.22.8(@jimp/custom@0.22.8)
       '@jimp/plugin-dither': 0.22.8(@jimp/custom@0.22.8)
       '@jimp/plugin-fisheye': 0.22.8(@jimp/custom@0.22.8)
-      '@jimp/plugin-flip': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-rotate@0.22.8)
+      '@jimp/plugin-flip': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-rotate@0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-crop@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8)))
       '@jimp/plugin-gaussian': 0.22.8(@jimp/custom@0.22.8)
       '@jimp/plugin-invert': 0.22.8(@jimp/custom@0.22.8)
       '@jimp/plugin-mask': 0.22.8(@jimp/custom@0.22.8)
       '@jimp/plugin-normalize': 0.22.8(@jimp/custom@0.22.8)
-      '@jimp/plugin-print': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8)
+      '@jimp/plugin-print': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8(@jimp/custom@0.22.8))
       '@jimp/plugin-resize': 0.22.8(@jimp/custom@0.22.8)
-      '@jimp/plugin-rotate': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8)(@jimp/plugin-crop@0.22.8)(@jimp/plugin-resize@0.22.8)
-      '@jimp/plugin-scale': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-resize@0.22.8)
-      '@jimp/plugin-shadow': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blur@0.22.8)(@jimp/plugin-resize@0.22.8)
-      '@jimp/plugin-threshold': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-color@0.22.8)(@jimp/plugin-resize@0.22.8)
+      '@jimp/plugin-rotate': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blit@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-crop@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))
+      '@jimp/plugin-scale': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))
+      '@jimp/plugin-shadow': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-blur@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))
+      '@jimp/plugin-threshold': 0.22.8(@jimp/custom@0.22.8)(@jimp/plugin-color@0.22.8(@jimp/custom@0.22.8))(@jimp/plugin-resize@0.22.8(@jimp/custom@0.22.8))
       timm: 1.7.1
 
   '@jimp/png@0.22.8(@jimp/custom@0.22.8)':
@@ -1633,6 +1644,10 @@ snapshots:
     dependencies:
       yocto-queue: 0.1.0
 
+  p-limit@7.1.1:
+    dependencies:
+      yocto-queue: 1.2.1
+
   p-locate@5.0.0:
     dependencies:
       p-limit: 3.1.0
@@ -1834,3 +1849,5 @@ snapshots:
   yallist@4.0.0: {}
 
   yocto-queue@0.1.0: {}
+
+  yocto-queue@1.2.1: {}
