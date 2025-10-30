@@ -151,80 +151,140 @@ async function getEachImageInfoAndDownload(allImageLinkList, basicInfo) {
     return settledResult.filter((item) => item.status === 'fulfilled').map(({ value }) => value)
   })
 
-  function _create_task(list) {
+  function _create_task(oriList) {
     let finished = 0
-    return list.map((info) => {
-      const { eachPageUrl, hash, sort, id, extension, directory } = info
+    let leftCount = 0
+    const leftMapMsg = {}
 
-      // region cache part
-      const filePath = path.resolve(`${directory}/${sort}-${hash}-${id}.${extension}`)
-      const cachedName = rawImagesMap[hash]
-      let rawFileName = `${hash}-${id}.${extension}`
-      let relativeRawPath = path.join(RAW_IMAGES_DIRETORY, rawFileName)
-      let rawPath = path.resolve(relativeRawPath)
-      if (cachedName != null) {
+    function checkHintOrNot() {
+      const HINT_NUMBER = 1
+      return leftCount <= HINT_NUMBER
+    }
+
+    const list = oriList.map((info) => ({
+      ...info,
+      finished: false,
+      key: `${info.id}-${info.sort}`,
+      messages: null,
+    }))
+
+    const record = Object.fromEntries(list.map((info) => [info.key, info]))
+
+    return list
+      .map((info) => {
+        const { eachPageUrl, hash, sort, id, extension, directory } = info
+
+        // region cache part
+        const filePath = path.resolve(`${directory}/${sort}-${hash}-${id}.${extension}`)
+        const cachedName = rawImagesMap[hash]
+        let rawFileName = `${hash}-${id}.${extension}`
+        let relativeRawPath = path.join(RAW_IMAGES_DIRETORY, rawFileName)
+        let rawPath = path.resolve(relativeRawPath)
+
+        if (cachedName != null) {
+          if (fs.existsSync(filePath)) {
+            info.messages = (finished) => [
+              cyan(`${finished}/${allImageLinkList.length}`),
+              blue(`${id} 的 ${sort} 已有 cache 且已有連結，直接結束執行緒`),
+            ]
+
+            return [async () => info, info]
+          }
+
+          relativeRawPath = path.join(RAW_IMAGES_DIRETORY, cachedName)
+          rawPath = path.resolve(relativeRawPath)
+
+          return [
+            async function () {
+              fs.symlinkSync(rawPath, filePath, 'file')
+
+              info.messages = (finished) => [
+                cyan(`${finished}/${allImageLinkList.length}`),
+                blue(`${id} 的 ${sort} 已有 cache, 連結後結束執行緒`),
+              ]
+
+              return info
+            },
+            info,
+          ]
+        }
+        // endregion cache part
         if (fs.existsSync(filePath)) {
-          finished++
-          console.log(
-            cyan(`${finished}/${allImageLinkList.length}`),
-            blue(`${id} 的 ${sort} 已有 cache 且已有連結，直接結束執行緒`)
-          )
-          return imagesLimit(() => null)
+          info.messages = (finished) => [green(`${filePath} 已經存在`)]
+          return [async () => info, info]
         }
 
-        relativeRawPath = path.join(RAW_IMAGES_DIRETORY, cachedName)
-        rawPath = path.resolve(relativeRawPath)
+        return [
+          async function () {
+            // 這個可以用來測試 task 到底有沒有作用
+            // console.log(`正要開始下載: ${eachPageUrl}`)
 
-        return imagesLimit(async function () {
-          fs.symlinkSync(rawPath, filePath, 'file')
+            return fetch(eachPageUrl, createRequestHeader())
+              .then((res) => res.text())
+              .then(async (body) => {
+                const $ = cheerio.load(body)
+                const imageDom = $('#img')
 
-          finished++
-          console.log(
-            cyan(`${finished}/${allImageLinkList.length}`),
-            blue(`${id} 的 ${sort} 已有 cache, 連結後結束執行緒`)
-          )
-        })
-      }
-      // endregion cache part
+                const src = imageDom.attr('src')
+                if (src == null) {
+                  console.log(lightRed(`${id} 的 ${sort} 的 img 沒有 src !`))
+                  throw new ErrorRes(ErrorRes.TYPE_MAP.IMAGE_SRC_NOT_EXIST, new Error('image src not exist'))
+                }
 
-      if (fs.existsSync(filePath)) {
-        console.log(green(`${filePath} 已經存在`))
-        return imagesLimit(() => null)
-      }
+                // 下載圖片到 raw-images, 然後再 link
+                return download(src, `${relativeRawPath}${PREPARE_SUFFIX}`, {
+                  headers: { Cookie: globalVariable.cookie || '' },
+                }).catch((error) => {
+                  console.log(lightRed(`${id} 的 ${sort} 下載失敗!`), src)
+                  throw new ErrorRes(ErrorRes.TYPE_MAP.IMAGEDOWN_LOAD_FAILED, new Error(error))
+                })
+              })
+              .then(() => {
+                rawImagesMap[hash] = rawFileName
 
-      return imagesLimit(function () {
-        return fetch(eachPageUrl, createRequestHeader())
-          .then((res) => res.text())
-          .then((body) => {
-            const $ = cheerio.load(body)
-            const imageDom = $('#img')
+                fs.renameSync(`${relativeRawPath}${PREPARE_SUFFIX}`, relativeRawPath)
+                fs.symlinkSync(rawPath, filePath, 'file')
+              })
+              .then(() => {
+                info.messages = (finished) => [
+                  cyan(`${finished}/${allImageLinkList.length}`),
+                  green(`${id} 的 ${sort} 下載完畢`),
+                ]
 
-            const src = imageDom.attr('src')
-            if (src == null) {
-              console.log(lightRed(`${id} 的 ${sort} 的 img 沒有 src !`))
-              throw new ErrorRes(ErrorRes.TYPE_MAP.IMAGE_SRC_NOT_EXIST, new Error('image src not exist'))
-            }
-
-            // 下載圖片到 raw-images, 然後再 link
-            return download(src, `${relativeRawPath}${PREPARE_SUFFIX}`, {
-              headers: { Cookie: globalVariable.cookie || '' },
-            }).catch((error) => {
-              console.log(lightRed(`${id} 的 ${sort} 下載失敗!`), src)
-              throw new ErrorRes(ErrorRes.TYPE_MAP.IMAGEDOWN_LOAD_FAILED, new Error(error))
-            })
-          })
-          .then(() => {
-            rawImagesMap[hash] = rawFileName
-
-            fs.renameSync(`${relativeRawPath}${PREPARE_SUFFIX}`, relativeRawPath)
-            return fs.symlinkSync(rawPath, filePath, 'file')
-          })
-          .then(() => {
-            finished++
-            console.log(cyan(`${finished}/${allImageLinkList.length}`), green(`${id} 的 ${sort} 下載完畢`))
-          })
+                return info
+              })
+          },
+          info,
+        ]
       })
-    })
+      .map(([promiseFn, info]) => {
+        return [
+          () =>
+            promiseFn().then((info) => {
+              finished++
+              record[info.key].finished = true
+              return info
+            }),
+          info,
+        ]
+      })
+      .map(([resolvePromiseFn, info]) => Promise.all([imagesLimit(resolvePromiseFn), info]))
+      .map((promiseAll) => {
+        return promiseAll.then((promiseAllResult) => {
+          const info = promiseAllResult[1]
+
+          // 這個是要顯示的必要訊息
+          console.log(...info.messages(finished))
+
+          const leftList = Object.values(record).filter((item) => !item.finished)
+          leftCount = leftList.length
+
+          if (checkHintOrNot() && !leftMapMsg[leftCount]) {
+            leftMapMsg[leftCount] = true
+            console.log(`${id} 剩 ${leftCount} 個: ${leftList.map((item) => item.eachPageUrl)}`)
+          }
+        })
+      })
   }
 }
 
