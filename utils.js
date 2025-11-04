@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { lightRed } from './console-color.js'
 
 export const EX_HOST = 'exhentai.org'
 export const E_HOST = 'e-hentai.org'
@@ -20,7 +21,7 @@ export const ILLEGAL_CHAR_REGEX = /[^\u4e00-\u9fa5_a-zA-Z0-9]+/g
 export const TAIL_CHAR_REGEX = /^_|_ExHentai_org$|_E_Hentai_Galleries?$/g
 
 const addProtocolPrifix = (path, host = E_HOST) => `https://${host}${path}`
-export const showError = (where, content) => console.error(`[${where}] ${content}`)
+export const showError = (where, content) => console.log(lightRed(`[${where}] ${content}`))
 export const stepMessage = (content, length = 7) => {
   const headTail = Array(length).fill('=').join('')
   console.log()
@@ -40,14 +41,14 @@ export function createFolders() {
  * */
 export function readSettingJson() {
   if (!fs.existsSync('setting.json')) {
-    console.log("There's no setting.json file.")
+    console.log(lightRed(`There's no setting.json file.`))
     return null
   }
 
   try {
     return JSON.parse(fs.readFileSync('setting.json'))
   } catch (e) {
-    console.log('Parse setting.json file error!')
+    console.log(lightRed('Parse setting.json file error!'))
     return null
   }
 }
@@ -92,7 +93,7 @@ export function normalizedUrl(url, errorDefault = null) {
     const { pathname } = new URL(url)
     return new NormalizedUrlInstance(pathname)
   } catch (e) {
-    console.log('[normalizedUrl] wrong url!', url, e)
+    console.log(lightRed('[normalizedUrl] wrong url!', url, e))
     return errorDefault
   }
 }
