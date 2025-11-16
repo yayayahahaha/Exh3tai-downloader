@@ -18,8 +18,8 @@ importers:
         specifier: ^3.2.3
         version: 3.2.3
       npm-flyc:
-        specifier: ^1.0.21
-        version: 1.0.21
+        specifier: ^1.0.23
+        version: 1.0.23
       p-limit:
         specifier: ^7.1.1
         version: 7.1.1
@@ -830,8 +830,8 @@ packages:
     resolution: {integrity: sha512-AXP18u4pidSZ1xYXRDPY/8jdv3RAozIt/WLNR/MBGZAz+xjtlr90RvCnsvHQRiXyWliZF/CpytExp32UU67/SA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  npm-flyc@1.0.21:
-    resolution: {integrity: sha512-vnAT4jKufzX56Av5TMur+YbfqicwUCjL4CeLWWpzlBbeJIrw0QiWN73cmeoq+JIHox0whb9KOpWXyVwd/mnPSg==}
+  npm-flyc@1.0.23:
+    resolution: {integrity: sha512-CTp1kLixYvf4r3bpAQGRvIaZzrDX5k/hc+mKIH35tXdPyMnQgpMai0sH9nQJj6IpuhctFT+5QUoWjS2MnHJlWw==}
 
   nth-check@2.0.1:
     resolution: {integrity: sha512-it1vE95zF6dTT9lBsYbxvqh0Soy4SPowchj0UBGj/V6cTPnXXtQOPUbhZ6CmGzAD/rW22LQK6E96pcdJXk4A4w==}
@@ -2113,7 +2113,7 @@ snapshots:
       fetch-blob: 3.1.5
       formdata-polyfill: 4.0.10
 
-  npm-flyc@1.0.21:
+  npm-flyc@1.0.23:
     dependencies:
       cli-progress: 3.12.0
       uuid: 9.0.1

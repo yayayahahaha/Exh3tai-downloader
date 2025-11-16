@@ -235,6 +235,7 @@ async function getEachImageInfoAndDownload(allImageLinkList, basicInfo) {
                 return download(src, `${relativeRawPath}${PREPARE_SUFFIX}`, {
                   headers: { Cookie: globalVariable.cookie || '' },
                 }).catch((error) => {
+                  console.log('error:', error)
                   console.log(lightRed(`${id} 的 ${sort} 下載失敗!`), src)
                   throw new ErrorRes(ErrorRes.TYPE_MAP.IMAGEDOWN_LOAD_FAILED, new Error(error))
                 })
