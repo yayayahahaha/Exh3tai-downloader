@@ -292,7 +292,10 @@ async function getEachImageInfoAndDownload(allImageLinkList, basicInfo) {
 async function getEachPageImagesLink({ endPage, url: rawUrl, id, directory }) {
   console.log(lightCyan(`🎀 開始取得 ${id} 的每一頁的資訊`))
 
+  if (rawUrl == null) throw new Error(red('getEachPageImagesLink: rawUrl 為 nullish'))
+
   const { origin, pathname } = new URL(rawUrl)
+
   const url = `${origin}${pathname}`
 
   const pageLimit = pLimit(globalVariable.taskNumber)
@@ -395,13 +398,20 @@ async function getUrlInfo(rawUrl) {
   const body = await res.text()
   const $ = cheerio.load(body)
   const endPage = getEndPage($)
-  if (isNaN(endPage)) {
+
+  if (isNaN(endPage) || body === '') {
     console.log(red(`取得 ${url} 的頁碼資訊失敗!`))
 
     if (urlInfo.failAndCheckRetry()) {
       console.log(magenta(`${url} 還有嘗試機會，繼續嘗試..`))
       return getUrlInfo(urlInfo)
     }
+
+    if (body === '') {
+      console.log(lightYellow('收到的 body 為空字串! 可能是 cookie 過期了，請更新 cookie 的 igneous 欄位後再試一次'))
+      return new ErrorRes(ErrorRes.TYPE_MAP.PAGE_NUMBER_FAILED, new Error('body is an empty string'))
+    }
+
     console.log(lightRed(`取得 ${url} 的頁碼資訊失敗且嘗試機會已經沒了!`))
     return new ErrorRes(ErrorRes.TYPE_MAP.PAGE_NUMBER_FAILED, new Error('endPage is not a number'))
   }
