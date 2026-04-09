@@ -62,6 +62,21 @@ const globalVariable = {
 
 const rawImagesMap = Object.fromEntries(readAllRawImages().map((info) => [info.hash, info.fullName]))
 
+// 讀取失效圖片範本 (509, nl-image)
+const BAD_IMAGE_FILES = ['./509', './nl-image']
+const badImageTemplates = BAD_IMAGE_FILES.filter((p) => fs.existsSync(p)).map((p) => {
+  const { size } = fs.statSync(p)
+  const base64 = fs.readFileSync(p, { encoding: 'base64' })
+  return { size, base64, path: p }
+})
+
+const isBadImage = (filePath) => {
+  if (!fs.existsSync(filePath)) return false
+  const { size } = fs.statSync(filePath)
+  const base64 = fs.readFileSync(filePath, { encoding: 'base64' })
+  return badImageTemplates.some((temp) => temp.size === size && temp.base64 === base64)
+}
+
 start()
 
 async function start() {
@@ -219,27 +234,50 @@ async function getEachImageInfoAndDownload(allImageLinkList, basicInfo) {
             // 這個可以用來測試 task 到底有沒有作用
             // console.log(`正要開始下載: ${eachPageUrl}`)
 
-            return fetch(eachPageUrl, createRequestHeader())
-              .then((res) => res.text())
-              .then(async (body) => {
-                const $ = cheerio.load(body)
-                const imageDom = $('#img')
+            const downloadAction = (currentUrl, isRetry = false) => {
+              return fetch(currentUrl, createRequestHeader())
+                .then((res) => res.text())
+                .then(async (body) => {
+                  const $ = cheerio.load(body)
+                  const imageDom = $('#img')
 
-                const src = imageDom.attr('src')
-                if (src == null) {
-                  console.log(lightRed(`${id} 的 ${sort} 的 img 沒有 src !`))
-                  throw new ErrorRes(ErrorRes.TYPE_MAP.IMAGE_SRC_NOT_EXIST, new Error('image src not exist'))
-                }
+                  const src = imageDom.attr('src')
+                  if (src == null) {
+                    console.log(lightRed(`${id} 的 ${sort} 的 img 沒有 src !`))
+                    throw new ErrorRes(ErrorRes.TYPE_MAP.IMAGE_SRC_NOT_EXIST, new Error('image src not exist'))
+                  }
 
-                // 下載圖片到 raw-images, 然後再 link
-                return download(src, `${relativeRawPath}${PREPARE_SUFFIX}`, {
-                  headers: { Cookie: globalVariable.cookie || '' },
-                }).catch((error) => {
-                  console.log('error:', error)
-                  console.log(lightRed(`${id} 的 ${sort} 下載失敗!`), src)
-                  throw new ErrorRes(ErrorRes.TYPE_MAP.IMAGEDOWN_LOAD_FAILED, new Error(error))
+                  const nlMatch = body.match(/\snl\('(.+?)'\)/)
+                  const nl = nlMatch ? nlMatch[1] : null
+
+                  const tempPath = `${relativeRawPath}${PREPARE_SUFFIX}`
+
+                  // 下載圖片到 raw-images (暫存檔)
+                  return download(src, tempPath, {
+                    headers: { Cookie: globalVariable.cookie || '' },
+                  })
+                    .then(() => {
+                      if (isBadImage(tempPath)) {
+                        fs.unlinkSync(tempPath)
+
+                        if (nl && !isRetry) {
+                          console.log(magenta(`${id} 的 ${sort} 下載到失效圖片，嘗試使用 nl=${nl} 重試...`))
+                          return downloadAction(`${eachPageUrl}?nl=${nl}`, true)
+                        }
+
+                        console.log(lightRed(`${id} 的 ${sort} 下載到失效圖片且無法重試 (nl missing or already retried)`))
+                        throw new ErrorRes(ErrorRes.TYPE_MAP.IMAGEDOWN_LOAD_FAILED, new Error('bad image downloaded'))
+                      }
+                    })
+                    .catch((error) => {
+                      console.log('error:', error)
+                      console.log(lightRed(`${id} 的 ${sort} 下載失敗!`), src)
+                      throw new ErrorRes(ErrorRes.TYPE_MAP.IMAGEDOWN_LOAD_FAILED, new Error(error))
+                    })
                 })
-              })
+            }
+
+            return downloadAction(eachPageUrl)
               .then(() => {
                 rawImagesMap[hash] = rawFileName
 
