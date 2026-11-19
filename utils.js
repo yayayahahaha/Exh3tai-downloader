@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { lightRed } from './console-color.js'
+import { lightGreen, lightRed, yellow } from './console-color.js'
 
 export const EX_HOST = 'exhentai.org'
 export const E_HOST = 'e-hentai.org'
@@ -195,8 +195,8 @@ function _getImageInfoByPath(fullPath, { type, readDetail = false } = {}) {
     return null
   }
 
-  const hash = nameMatchedKeys[hashIndex]
-  const url = ['', ...nameMatchedKeys.slice(hashIndex + 1)].join('/')
+  const hash = nameMatchedKeys?.[hashIndex] ?? null
+  const url = nameMatchedKeys ? ['', ...nameMatchedKeys.slice(hashIndex + 1)].join('/') : ''
 
   const detail = !readDetail
     ? null
@@ -254,4 +254,176 @@ export function checkParam(jsonContent) {
   }
 
   return true
+}
+
+/**
+ * 解析設定檔中的資料夾項目（支援資料夾名稱、指向 SAVE_DIRECTORY 底下的相對或絕對路徑）
+ * @param {unknown} entry
+ * @param {Set<string>} savedFolderSet
+ * @returns {{ ok: true, folderName: string, notice?: string } | { ok: false, reason: string }}
+ */
+function _resolveSavedFolderEntry(entry, savedFolderSet) {
+  if (typeof entry !== 'string' || entry.trim() === '') {
+    return { ok: false, reason: `資料夾設定必須為非空字串: ${JSON.stringify(entry)}` }
+  }
+
+  const rawEntry = entry.trim()
+  const saveRoot = fs.existsSync(SAVE_DIRECTORY) ? fs.realpathSync(SAVE_DIRECTORY) : path.resolve(SAVE_DIRECTORY)
+  const isAbsPath = path.isAbsolute(rawEntry)
+  const hasPathSeparator = rawEntry.includes('/') || rawEntry.includes('\\') || rawEntry === '.' || rawEntry === '..'
+
+  if (isAbsPath || hasPathSeparator) {
+    const resolvedFromCwd = path.resolve(rawEntry)
+
+    if (!fs.existsSync(resolvedFromCwd)) {
+      const withoutTrailing = rawEntry.replace(/[\\/]+$/, '')
+      if (!isAbsPath && !withoutTrailing.includes('/') && !withoutTrailing.includes('\\') && savedFolderSet.has(withoutTrailing)) {
+        return {
+          ok: true,
+          folderName: withoutTrailing,
+          notice: `已自動去除結尾斜線並解析為資料夾名稱: ${withoutTrailing}`,
+        }
+      }
+
+      return {
+        ok: false,
+        reason: isAbsPath
+          ? `路徑不存在（絕對路徑）: ${rawEntry}`
+          : `在相對路徑與 ${SAVE_DIRECTORY} 底下皆找不到該資料夾: ${rawEntry}`,
+      }
+    }
+
+    const realTarget = fs.realpathSync(resolvedFromCwd)
+    if (!fs.statSync(realTarget).isDirectory()) {
+      return { ok: false, reason: `目標路徑不是資料夾: ${rawEntry}` }
+    }
+
+    if (path.dirname(realTarget) === saveRoot) {
+      const folderName = path.basename(realTarget)
+      if (savedFolderSet.has(folderName)) {
+        return {
+          ok: true,
+          folderName,
+          notice: `已從${isAbsPath ? '絕對' : '相對'}路徑自動解析為資料夾名稱: ${folderName}`,
+        }
+      }
+    }
+
+    return {
+      ok: false,
+      reason: `不支援 ${SAVE_DIRECTORY} 以外的${isAbsPath ? '絕對' : '相對'}路徑: ${rawEntry}`,
+    }
+  }
+
+  if (savedFolderSet.has(rawEntry)) {
+    return { ok: true, folderName: rawEntry }
+  }
+
+  const candidateInSave = path.resolve(SAVE_DIRECTORY, rawEntry)
+  if (fs.existsSync(candidateInSave) && !fs.statSync(candidateInSave).isDirectory()) {
+    return { ok: false, reason: `目標不是資料夾: ${rawEntry}` }
+  }
+
+  return { ok: false, reason: `在 ${SAVE_DIRECTORY} 底下找不到資料夾: ${rawEntry}` }
+}
+
+/**
+ * 讀取設定檔並將指定資料夾的實體圖片從 raw-images 複製到目標目錄
+ * @param {object} options
+ * @param {string} options.settingKey - setting.json 內的欄位名稱
+ * @param {string} options.targetDirectory - 目標輸出根目錄
+ * @param {string} options.actionLabel - 終端機提示標題
+ * @returns {{ copiedFiles: string[], errors: object[], hasError: boolean } | null}
+ */
+export function exportSavedImagesToDirectory({ settingKey, targetDirectory, actionLabel }) {
+  const setting = readSettingJson()
+  if (setting == null) return null
+
+  const folderEntries = setting[settingKey]
+  if (!Array.isArray(folderEntries)) {
+    showError(settingKey, `setting.json 的 "${settingKey}" 欄位不存在或不是陣列`)
+    return null
+  }
+
+  createFolders()
+
+  if (folderEntries.length === 0) {
+    console.log(yellow(`[${settingKey}] setting.json 中沒有設定任何資料夾。`))
+    return { copiedFiles: [], errors: [], hasError: false }
+  }
+
+  const savedImages = readAllSavedImages()
+  const rawImages = readAllRawImages()
+  const rawImageMap = Object.fromEntries(rawImages.filter((image) => image?.hash).map((image) => [image.hash, image]))
+  const savedFolderMap = new Map(savedImages.sortByFolder.map((item) => [item.folderName, item]))
+  const savedFolderSet = new Set(savedFolderMap.keys())
+
+  console.log(`${actionLabel}的資料夾: `)
+  folderEntries.forEach((folder, index) => console.log(`${index + 1}. ${folder}`))
+
+  const errors = []
+  const resolvedFolders = []
+  const seenFolders = new Set()
+
+  for (const entry of folderEntries) {
+    const resolved = _resolveSavedFolderEntry(entry, savedFolderSet)
+    if (!resolved.ok) {
+      showError(settingKey, resolved.reason)
+      errors.push({ type: 'invalid-folder', entry, message: resolved.reason })
+      continue
+    }
+
+    if (resolved.notice) {
+      console.log(yellow(`[${settingKey}] ${resolved.notice}`))
+    }
+
+    const { folderName } = resolved
+    if (seenFolders.has(folderName)) {
+      console.log(yellow(`[${settingKey}] 重複的資料夾設定，已略過: ${folderName}`))
+      continue
+    }
+
+    const folderInfo = savedFolderMap.get(folderName)
+    if (!folderInfo || folderInfo.images.length === 0) {
+      console.log(yellow(`[${settingKey}] 資料夾內沒有任何圖片，已略過: ${folderName}`))
+      continue
+    }
+
+    seenFolders.add(folderName)
+    resolvedFolders.push(folderName)
+  }
+
+  const targetFolderSet = new Set(resolvedFolders)
+  const copiedFiles = []
+
+  for (const image of savedImages.flatImages) {
+    if (!image || !targetFolderSet.has(image.folder)) continue
+
+    const rawImage = image.hash ? rawImageMap[image.hash] : null
+    if (!rawImage || !fs.existsSync(rawImage.fullPath)) {
+      const msg = `找不到對應的 raw-images 檔案 (folder: ${image.folder}, file: ${image.fullName}, hash: ${image.hash})`
+      showError(settingKey, msg)
+      errors.push({ type: 'missing-raw', folder: image.folder, file: image.fullName, message: msg })
+      continue
+    }
+
+    const fullFolder = path.resolve(path.join(targetDirectory, image.folder))
+    const fullFileName = path.resolve(fullFolder, image.fullName)
+
+    try {
+      if (!fs.existsSync(fullFolder)) fs.mkdirSync(fullFolder, { recursive: true })
+      fs.copyFileSync(rawImage.fullPath, fullFileName)
+      copiedFiles.push(fullFileName)
+    } catch (err) {
+      const msg = `複製檔案失敗 (${image.fullName}): ${err.message}`
+      showError(settingKey, msg)
+      errors.push({ type: 'copy-failed', file: fullFileName, message: msg })
+    }
+  }
+
+  if (errors.length === 0 && copiedFiles.length > 0) {
+    console.log(lightGreen(`[${settingKey}] 已複製 ${copiedFiles.length} 張圖片到 ${targetDirectory}`))
+  }
+
+  return { copiedFiles, errors, hasError: errors.length > 0 }
 }

@@ -1,41 +1,29 @@
-import { REAL_IMAGES_DIRECTORY, createFolders, readAllRawImages, readAllSavedImages, readSettingJson } from './utils.js'
-import fs from 'fs'
-import path from 'path'
-
-// TODO(flyc): 各種邊際除錯: error handling, folder-name not-found, update strategy
+import { REAL_IMAGES_DIRECTORY, exportSavedImagesToDirectory } from './utils.js'
+import { lightGreen, yellow } from './console-color.js'
 
 start()
 
 function start() {
-  createFolders()
+  const result = exportSavedImagesToDirectory({
+    settingKey: 'makeItReal',
+    targetDirectory: REAL_IMAGES_DIRECTORY,
+    actionLabel: '想要變成實體圖片',
+  })
 
-  const setting = readSettingJson()
-  if (setting == null) return
+  if (result == null) {
+    process.exitCode = 1
+    return
+  }
 
-  const { makeItReal: folderNames } = setting
-  if (!Array.isArray(folderNames)) return // TODO(flyc): warning message
+  const { copiedFiles, errors } = result
 
-  const savedImages = readAllSavedImages()
-  const rawImages = readAllRawImages()
-  const rawImageMap = Object.fromEntries(rawImages.map((image) => [image.hash, image]))
+  if (errors.length > 0) {
+    console.log(yellow(`處理完成，但有 ${errors.length} 個錯誤（成功複製 ${copiedFiles.length} 張）`))
+    process.exitCode = 1
+    return
+  }
 
-  const folderNameMap = Object.fromEntries(folderNames.map((name) => [name, true]))
-
-  console.log('想要變成實體圖片的資料夾: ')
-  folderNames.forEach((folder, index) => console.log(`${index + 1}. ${folder}`))
-
-  savedImages.flatImages
-    .filter((image) => folderNameMap[image.folder])
-    .forEach((image) => {
-      const { fullName: fileName, folder } = image
-      const rawPath = rawImageMap[image.hash].fullPath
-
-      const fullFolder = path.resolve(path.join(REAL_IMAGES_DIRECTORY, folder))
-      if (!fs.existsSync(fullFolder)) fs.mkdirSync(fullFolder)
-
-      const fullFileName = path.resolve(fullFolder, fileName)
-      fs.copyFileSync(rawPath, fullFileName)
-    })
-
-  console.log('創建成功')
+  if (copiedFiles.length > 0) {
+    console.log(lightGreen('創建成功'))
+  }
 }

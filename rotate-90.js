@@ -1,4 +1,5 @@
-import { ROTATE_90_DIRECTORY, createFolders, readAllRawImages, readAllSavedImages, readSettingJson } from './utils.js'
+import { ROTATE_90_DIRECTORY, exportSavedImagesToDirectory, showError } from './utils.js'
+import { lightGreen, yellow } from './console-color.js'
 import fs from 'fs'
 import path from 'path'
 import sharp from 'sharp'
@@ -6,48 +7,50 @@ import sharp from 'sharp'
 start()
 
 async function start() {
-  createFolders()
+  const result = exportSavedImagesToDirectory({
+    settingKey: 'rotate-90',
+    targetDirectory: ROTATE_90_DIRECTORY,
+    actionLabel: '想要變成實體圖片並逆時針轉 90 度',
+  })
 
-  const setting = readSettingJson()
-  if (setting == null) return
-
-  const { 'rotate-90': folderNames } = setting
-  if (!Array.isArray(folderNames)) return
-
-  const savedImages = readAllSavedImages()
-  const rawImages = readAllRawImages()
-  const rawImageMap = Object.fromEntries(rawImages.map((image) => [image.hash, image]))
-
-  const folderNameMap = Object.fromEntries(folderNames.map((name) => [name, true]))
-
-  console.log('想要變成實體圖片並逆時針轉 90 度的資料夾: ')
-  folderNames.forEach((folder, index) => console.log(`${index + 1}. ${folder}`))
-
-  const targetFiles = []
-
-  savedImages.flatImages
-    .filter((image) => folderNameMap[image.folder])
-    .forEach((image) => {
-      const { fullName: fileName, folder } = image
-      const rawPath = rawImageMap[image.hash].fullPath
-
-      const fullFolder = path.resolve(path.join(ROTATE_90_DIRECTORY, folder))
-      if (!fs.existsSync(fullFolder)) fs.mkdirSync(fullFolder)
-
-      const fullFileName = path.resolve(fullFolder, fileName)
-      fs.copyFileSync(rawPath, fullFileName)
-      targetFiles.push(fullFileName)
-    })
-
-  console.log(`複製完成（共 ${targetFiles.length} 張），開始逆時針旋轉 90 度...`)
-
-  for (let i = 0; i < targetFiles.length; i++) {
-    const filePath = targetFiles[i]
-    const inputBuffer = fs.readFileSync(filePath)
-    const outputBuffer = await sharp(inputBuffer).rotate(-90).toBuffer()
-    fs.writeFileSync(filePath, outputBuffer)
-    console.log(`[${i + 1}/${targetFiles.length}] 已旋轉: ${path.basename(filePath)}`)
+  if (result == null) {
+    process.exitCode = 1
+    return
   }
 
-  console.log('創建與旋轉成功')
+  const { copiedFiles, errors } = result
+
+  if (copiedFiles.length === 0) {
+    if (errors.length > 0) {
+      console.log(yellow(`處理結束，共發生 ${errors.length} 個錯誤，沒有圖片被複製。`))
+      process.exitCode = 1
+    }
+    return
+  }
+
+  console.log(`複製完成（共 ${copiedFiles.length} 張），開始逆時針旋轉 90 度...`)
+
+  let rotatedCount = 0
+  for (let i = 0; i < copiedFiles.length; i++) {
+    const filePath = copiedFiles[i]
+    try {
+      const inputBuffer = fs.readFileSync(filePath)
+      const outputBuffer = await sharp(inputBuffer).rotate(-90).toBuffer()
+      fs.writeFileSync(filePath, outputBuffer)
+      rotatedCount++
+      console.log(`[${i + 1}/${copiedFiles.length}] 已旋轉: ${path.basename(filePath)}`)
+    } catch (err) {
+      const msg = `旋轉失敗 (${path.basename(filePath)}): ${err.message}`
+      showError('rotate-90', msg)
+      errors.push({ type: 'rotate-failed', file: filePath, message: msg })
+    }
+  }
+
+  if (errors.length > 0) {
+    console.log(yellow(`處理完成，但有 ${errors.length} 個錯誤（成功複製 ${copiedFiles.length} 張，成功旋轉 ${rotatedCount} 張）`))
+    process.exitCode = 1
+    return
+  }
+
+  console.log(lightGreen('創建與旋轉成功'))
 }
