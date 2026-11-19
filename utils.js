@@ -9,6 +9,7 @@ export const RAW_IMAGES_DIRETORY = 'raw-images'
 export const LOG_DIRECTORY = './log'
 export const PREPARE_SUFFIX = '-preparing'
 export const REAL_IMAGES_DIRECTORY = './real-images'
+export const ROTATE_90_DIRECTORY = './rotate-90'
 
 export const UNCOMPLETED_URL_LIST_LOG_PREFIX = 'uncompleted-url-list'
 export const REUSED_LIST_LOG_PREFIX = 'reused-url-list'
@@ -33,6 +34,7 @@ export function createFolders() {
   if (!fs.existsSync(RAW_IMAGES_DIRETORY)) fs.mkdirSync(RAW_IMAGES_DIRETORY)
   if (!fs.existsSync(LOG_DIRECTORY)) fs.mkdirSync(LOG_DIRECTORY)
   if (!fs.existsSync(REAL_IMAGES_DIRECTORY)) fs.mkdirSync(REAL_IMAGES_DIRECTORY)
+  if (!fs.existsSync(ROTATE_90_DIRECTORY)) fs.mkdirSync(ROTATE_90_DIRECTORY)
 }
 
 /**
@@ -235,6 +237,7 @@ export function checkParam(jsonContent) {
     { value: 'workerCount', type: 'number', validate: (value) => typeof value === 'number' },
     { value: 'url', type: 'array', validate: (value) => Array.isArray(value) },
     { value: 'makeItReal', type: 'array', validate: (value) => Array.isArray(value) },
+    { value: 'rotate-90', type: 'array', validate: (value) => Array.isArray(value) },
   ].filter((keyInfo) => jsonContent[keyInfo.value] !== undefined)
 
   const hasError = []
